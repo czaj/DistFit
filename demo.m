@@ -1,5 +1,5 @@
 clear all; clc;
-DATA = load('dane.mat');
+DATA = load('data.mat');
 
 DATA.WTPfpU(DATA.WTPfpU == 401) = Inf;
 DATA.WTPhpU(DATA.WTPhpU == 401) = Inf;
@@ -32,15 +32,7 @@ DATA.WTPhpU(DATA.WTPhpU == 401) = Inf;
 %     24; % sinh-arcsinh
     
 INPUT.bounds = [DATA.WTPfpL DATA.WTPfpU];
-midpoint = zeros(size(INPUT.bounds,1),1);
 
-for ii = 1:length(midpoint)
-    if isfinite(DATA.WTPfpU(ii))==1
-       midpoint(ii) = (DATA.WTPfpL(ii) + DATA.WTPfpU(ii)) / 2;
-    else
-       midpoint(ii) = DATA.WTPfpL(ii);
-    end
-end
 
 % WTP = WTPfit(INPUT);
 
