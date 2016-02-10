@@ -21,10 +21,6 @@ elseif nargin == 4
 	dist = varargin{1};
     b0 = varargin{2};
     EstimOpt = varargin{3};
-elseif nargin == 4
-	dist = varargin{1};
-    b0 = varargin{2};
-    EstimOpt = varargin{3};
 end
    
 %% check INPUT
@@ -34,10 +30,30 @@ if size(INPUT.bounds,2) < 2
 elseif any(isnan(INPUT.bounds(:)))
     error('Some of the lower or upper bounds for WTP missing')
 elseif any(sum(isfinite(INPUT.bounds),2)==0) % both bounds undefined
-    error('Dataset includes observations with infinite bounds')        
+    error('Dataset includes observations with infinite bounds')
+elseif any(INPUT.bounds(:,1) > INPUT.bounds(:,2))
+    error('Some lower bounds are greater than upper bounds')
 elseif any(INPUT.bounds(:,1) == INPUT.bounds(:,2))
  	cprintf(rgb('DarkOrange'), 'WARNING: Some of the upper and lower bounds equal - shifting the offending upper bounds by eps \n')
     INPUT.bounds(INPUT.bounds(:,1) == INPUT.bounds(:,2),2) = INPUT.bounds(INPUT.bounds(:,1) == INPUT.bounds(:,2),2) + eps;
+elseif (dist==[10:21] & INPUT.bounds(:)<=0)
+    cprintf(rgb('DarkOrange'), 'WARNING: Adjusting bounds to match the distribution type \n')
+    INPUT.bounds(INPUT.bounds(:,1)<=0,1)= eps;
+    INPUT.bounds(INPUT.bounds(:,2)<=0,2)= INPUT.bounds(INPUT.bounds(:,2)<=0,1) + eps;
+elseif (dist==[31:32] & INPUT.bounds(:)<0)
+    cprintf(rgb('DarkOrange'), 'WARNING: Adjusting bounds to match the distribution type \n')
+    INPUT.bounds(INPUT.bounds(:,1)<0,1)= 0;
+    INPUT.bounds(INPUT.bounds(:,2)<0,2)= INPUT.bounds(INPUT.bounds(:,2)<0,1) + 1;
+elseif (dist==[31:32] & any(isinteger(INPUT.bounds(:))==0))
+    cprintf(rgb('DarkOrange'), 'WARNING: Adjusting bounds to match the distribution type \n')
+    if round(INPUT.bounds(INPUT.bounds(:,1))==0,1)<0
+        INPUT.bounds(isinteger(INPUT.bounds(:,1))==0,1) = 0;
+    elseif round(INPUT.bounds(INPUT.bounds(:,1))==0,1)>=0
+        INPUT.bounds(isinteger(INPUT.bounds(:,1))==0,1) = round(INPUT.bounds(INPUT.bounds(:,1))==0,1);
+    elseif round(INPUT.bounds(INPUT.bounds(:,2))==0,2)<0
+        INPUT.bounds(isinteger(INPUT.bounds(:,2))==0,2) = 0;
+    elseif round(INPUT.bounds(INPUT.bounds(:,2))==0,2)>=0
+        INPUT.bounds(isinteger(INPUT.bounds(:,2))==0,2) = round(INPUT.bounds(INPUT.bounds(:,2))==0,2);
 end
     
 %% distribution type:
@@ -53,26 +69,16 @@ end
 
 if exist('b0','var') && ~isempty(b0)
     b0 = b0(:);
-    if size(b0,1) ~= 1
+    if size(b0,1) ~= 1 || (size(b0,2) ~= 1 & dist == [10,14,31]) || (size(b0,2) ~= 2 & dist == [0:2,5,11:13,15,16,18:20,32]) || (size(b0,2) ~= 3 & dist == [3,4,17]) || (size(b0,2) ~= 4 & dist == [6,21])
         
         % Ewa - size,2 te? trzeba tu sprawdza?, czy si? zgadza z liczb? potrzebnych parametrów dla danego rozk?adu
         % i w zaleznosci od tego, czy dopuszczamy obciecie danych (czyli spike w 0) czy nie. 
+        % Nie rozumiem tej drugiej czêœci - co trzeba wiêcej sprawdziæ?
         
         cprintf(rgb('DarkOrange'), 'WARNING: Incorrect number of starting values - using midpoint-based estimates as starting values \n')
         b0 = [];
     end
 end
-% jeszcze jedn? rzecz trzeba sprawdza? - czy boundy pasuj? do przyj?tego rozk?adu
-% (np. dla lognormalnego dolny nie mo?e by? < 0, a dla dyskretnych nie mo?e by? nieca?kowitych itp.)
-% i w takim przypadku wyrz?da? Warning:
-% cprintf(rgb('DarkOrange'), 'WARNING: Adjusting bounds to match the distribution type \n')
-% i korygowa? te boundy do odpowiedniego poziomu. 
-
-% Ewa - mid-point to musi by? tu liczony, a nie w demo - przecie? on nie jest w ?aden sposób podawany z pliku wsadowego, a zreszt? bez sensu by?oby go liczy? tam,
-% bo (1) nie zawsze jest potrzebny i (2) do du?o klepania niepotrzebnego dla kolejnych zbiorów danych, je?li to mo?e by? schowane i niewidoczne dla u?ytkownika
-
-% ten mid-point - to nieefektywny sposób liczenia (p?tla) - lepiej robi? to przez indeksowanie (bo jest du?o pro?ciej i szybciej)
-% poza tym, on nie bra? pod uwag? 2 moliwoci - ?e i dó? mo?e by? -Inf i góra +Inf
 
 midpoint = mean(INPUT.bounds,2);
 midpoint(~isfinite(midpoint)) = INPUT.bounds(~isfinite(midpoint),2);
@@ -106,10 +112,7 @@ if ~exist('b0','var') || isempty(b0)
             b0 = pd.ParameterValues; % mu, sigma, nu
         case 5 % uniform
             b0 = [min(midpoint),max(midpoint)];
-        case 6 % Rician
-            pd = fitdist(midpoint,'Rician','Options',OptimOptFit);
-            b0 = pd.ParameterValues; % s, sigma
-        case 7 % Johnson SU        
+        case 6 % Johnson SU        
             pd = f_johnson_fit(midpoint);
             b0 =  pd.coef; % gamma delta xi lambda
 % stable
@@ -118,16 +121,16 @@ if ~exist('b0','var') || isempty(b0)
         case 10 % exponential
             pd = fitdist(midpoint,'Exponential','Options',OptimOptFit);
             b0 = pd.ParameterValues; % mu        
-        case 12 % lognormal
+        case 11 % lognormal
             pd = fitdist(midpoint,'Lognormal','Options',OptimOptFit);
             b0 = pd.ParameterValues; % mu, sigma
-        case 13 % loglogistic
+        case 12 % loglogistic
             pd = fitdist(midpoint,'Loglogistic','Options',OptimOptFit);
             b0 = pd.ParameterValues; % mu, sigma
-        case 14 % Weibull
+        case 13 % Weibull
             pd = fitdist(midpoint,'Weibull','Options',OptimOptFit);
             b0 = pd.ParameterValues; % A, B
-        case 11 % Rayleigh 
+        case 14 % Rayleigh 
             pd = fitdist(midpoint,'Rayleigh','Options',OptimOptFit);
             b0 = pd.ParameterValues; % B
         case 15 % Gamma
@@ -141,7 +144,7 @@ if ~exist('b0','var') || isempty(b0)
             b0 = pd.ParameterValues; % k, sigma, theta
         case 18 % InverseGaussian
             pd = fitdist(midpoint,'InverseGaussian','Options',OptimOptFit);
-            b0 = pd.ParameterValues; % k, sigma, theta
+            b0 = pd.ParameterValues; % k, sigma
         case 19 % Nakagami
             pd = fitdist(midpoint,'Nakagami','Options',OptimOptFit);
             b0 = pd.ParameterValues; % mu, omega
@@ -150,7 +153,7 @@ if ~exist('b0','var') || isempty(b0)
             b0 = pd.ParameterValues; % s, sigma
         case 21 % Johnson SB
             pd = f_johnson_fit(midpoint);
-            b0 = pd.coef;
+            b0 = pd.coef; % gamma delta xi lambda
     %     case x % Burr
     %         pd = fitdist(midpoint,'Burr','Options',OptimOptFit); % Error - Parto distribution fits better
     %         b0 = pd.ParameterValues; %
