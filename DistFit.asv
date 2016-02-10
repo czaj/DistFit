@@ -169,7 +169,7 @@ if ~exist('b0','var') || isempty(b0)
     end
 end
 
-% check RealMin
+% create EstimOpt and RealMin
 if ~exist('EstimOpt','var') || isempty(EstimOpt) || ~isfield(EstimOpt,'RealMin') || isempty(EstimOpt.RealMin)
     EstimOpt.RealMin = true;
 end
@@ -181,7 +181,7 @@ if ~islogical(EstimOpt.RealMin)
     end
 end    
     
-% check optimizer options:
+% optimizer options:
 if ~isfield(EstimOpt,'OptimOpt') || isempty(EstimOpt.OptimOpt)
     EstimOpt.OptimOpt = optimoptions('fminunc');
     EstimOpt.OptimOpt.Algorithm = 'quasi-newton';
@@ -196,4 +196,4 @@ if ~isfield(EstimOpt,'OptimOpt') || isempty(EstimOpt.OptimOpt)
 end
 
 
-[WTP.beta, WTP.fval, WTP.flag, WTP.out, WTP.grad, WTP.hess] = fminunc(@(b) -sum(LL_DistFit(INPUT.bounds,dist,EstimOpt.RealMin,b)), b0, EstimOpt.OptimOpt);
+[WTP.beta, WTP.fval, WTP.flag, WTP.out, WTP.grad, WTP.hess] = fminunc(@(b) -sum(LL_DistFit(INPUT.bounds,dist,b)), b0, EstimOpt);
