@@ -55,7 +55,7 @@ switch type
       u = log(u);
    case 'SB'
       if (any(u <= 0) || any(u>=1.0))
-         error('\nSB values out of range!');
+         error('SB values out of range!');
       else
          u = u ./ (1-u);
          u = log(u);

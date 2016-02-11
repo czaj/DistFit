@@ -22,38 +22,10 @@ elseif nargin == 4
     b0 = varargin{2};
     EstimOpt = varargin{3};
 end
-   
-%% check INPUT
 
-if size(INPUT.bounds,2) < 2
-    error('Providing lower and upper bounds for WTP required')
-elseif any(isnan(INPUT.bounds(:)))
-    error('Some of the lower or upper bounds for WTP missing')
-elseif any(sum(isfinite(INPUT.bounds),2)==0) % both bounds undefined
-    error('Dataset includes observations with infinite bounds')
-elseif any(INPUT.bounds(:,1) > INPUT.bounds(:,2))
-    error('Some lower bounds are greater than upper bounds')
-elseif (dist==[10:21] & INPUT.bounds(:)<=0)
-    cprintf(rgb('DarkOrange'), 'WARNING: Adjusting bounds to match the distribution type \n')
-    INPUT.bounds(INPUT.bounds(:,1)<=0,1)= eps;
-    INPUT.bounds(INPUT.bounds(:,2)<=0,2)= INPUT.bounds(INPUT.bounds(:,2)<=0,1) + eps;
-elseif (dist==[31:32] & INPUT.bounds(:)<0)
-    cprintf(rgb('DarkOrange'), 'WARNING: Adjusting bounds to match the distribution type \n')
-    INPUT.bounds(INPUT.bounds(:,1)<0,1)= 0;
-    INPUT.bounds(INPUT.bounds(:,2)<0,2)= INPUT.bounds(INPUT.bounds(:,2)<0,1) + 1;
-elseif (dist==[31:32] & any(isinteger(INPUT.bounds(:))==0))
-    cprintf(rgb('DarkOrange'), 'WARNING: Adjusting bounds to match the distribution type \n')
-    if round(INPUT.bounds(INPUT.bounds(:,1))==0,1)<0
-        INPUT.bounds(isinteger(INPUT.bounds(:,1))==0,1) = 0;
-    elseif round(INPUT.bounds(INPUT.bounds(:,1))==0,1)>=0
-        INPUT.bounds(isinteger(INPUT.bounds(:,1))==0,1) = round(INPUT.bounds(INPUT.bounds(:,1))==0,1);
-    elseif round(INPUT.bounds(INPUT.bounds(:,2))==0,2)<0
-        INPUT.bounds(isinteger(INPUT.bounds(:,2))==0,2) = 0;
-    elseif round(INPUT.bounds(INPUT.bounds(:,2))==0,2)>=0
-        INPUT.bounds(isinteger(INPUT.bounds(:,2))==0,2) = round(INPUT.bounds(INPUT.bounds(:,2))==0,2);
-    end
-end
-    
+% save DistFit_tmp
+% return
+
 %% distribution type:
 
 if ~exist('dist','var') || isempty(dist)
@@ -63,19 +35,58 @@ elseif ~any(dist == [0:7,10:21,31:32])
 	error('Unsupported distribution type')
 end
 
+%% check INPUT
+
+if size(INPUT.bounds,2) < 2
+    error('Providing lower and upper bounds for WTP required')
+elseif any(isnan(INPUT.bounds(:)))
+    error('Some of the lower or upper bounds for WTP missing')
+elseif any(sum(isfinite(INPUT.bounds),2)==0) % both bounds infinite
+    error('Dataset includes observations with infinite bounds')
+elseif any(INPUT.bounds(:,1) > INPUT.bounds(:,2))
+    error('Some lower bounds are greater than upper bounds')
+elseif any(dist == [10:21,31:32]) && any(INPUT.bounds(:,2) < 0)
+    error('Negative upper bounds not consistent with the distribution type')
+elseif any(dist == [10:21,31:32]) && any(INPUT.bounds(:,1) < 0)
+    cprintf(rgb('DarkOrange'), 'WARNING: Negative lower bounds not consistent with the distribution type - censoring to 0 \n')
+    INPUT.bounds(INPUT.bounds(:,1)<0,1) = 0;
+end
+% perhaps we will need to check if bounds == 0, but let's leave if for later, when the spike option is added. 
+if any(dist == 31:32) && isinteger(INPUT.bounds(isfinite(INPUT.bounds)))
+    cprintf(rgb('DarkOrange'), 'WARNING: Rounding up finite bounds to integer values to match the distribution type \n')
+    INPUT.bounds(isfinite(INPUT.bounds)) = round(INPUT.bounds(isfinite(INPUT.bounds)));
+end
+
+% this is temporary:
+if dist == 21 && any(INPUT.bounds(:) == 0)
+    cprintf(rgb('DarkOrange'), 'WARNING: Bounds = 0 not consistent with the distribution type - censoring to eps \n')
+    INPUT.bounds(INPUT.bounds==0) = eps;    
+end
+if dist == 21 && any(isinf(INPUT.bounds(:)))
+    cprintf(rgb('DarkOrange'), 'WARNING: Bounds = Inf not consistent with the distribution type - censoring to max bound * 2 \n')
+    INPUT.bounds(isinf(INPUT.bounds)) = max(INPUT.bounds(~isinf(INPUT.bounds(:,2)),2)) * 2;
+end
+
+
+
 %% starting values:
 
 if exist('b0','var') && ~isempty(b0)
     b0 = b0(:);
-    if size(b0,1) ~= 1 || (size(b0,2) ~= 1 & dist == [10,14,31]) || (size(b0,2) ~= 2 & dist == [0:2,5,11:13,15,16,18:20,32]) || (size(b0,2) ~= 3 & dist == [3,4,17]) || (size(b0,2) ~= 4 & dist == [6,21])
-        
+    k = 1*any(dist == [10,14,31]) + 2*any(dist == [0:2,5,11:13,15,16,18:20,32]) + 3*any(dist == [3,4,17]) + 4*any(dist == [6,21]);    
+    if size(b0,2) ~= k
+       cprintf(rgb('DarkOrange'), 'WARNING: Incorrect number of starting values - using midpoint-based estimates as starting values \n')
+       b0 = [];
+    end
+
         % Ewa - size,2 te? trzeba tu sprawdza?, czy si? zgadza z liczb? potrzebnych parametrów dla danego rozk?adu
         % i w zaleznosci od tego, czy dopuszczamy obciecie danych (czyli spike w 0) czy nie. 
+        
         % Nie rozumiem tej drugiej czêœci - co trzeba wiêcej sprawdziæ?
         
-        cprintf(rgb('DarkOrange'), 'WARNING: Incorrect number of starting values - using midpoint-based estimates as starting values \n')
-        b0 = [];
-    end
+        % Jak b?dzie model ze spike i podanymi warto?ciami startowymi, to trzeba b?dzie sprawdza? czy ich liczba jest ok. 
+        % modele ze spike b?d? mia?y wi?cej parametrów. 
+        % Potem trzeba te? b?dzie sprawdza?, czy modele ze zmiennymi obja?niaj?cymi maj? wystarczaj?c? liczb? parametrów. 
 end
 
 midpoint = mean(INPUT.bounds,2);
@@ -149,9 +160,16 @@ if ~exist('b0','var') || isempty(b0)
         case 20 % Rician
             pd = fitdist(midpoint,'Rician','Options',OptimOptFit);
             b0 = pd.ParameterValues; % s, sigma
-        case 21 % Johnson SB
-            pd = f_johnson_fit(midpoint);
-            b0 = pd.coef; % gamma delta xi lambda
+%         case 21 % Johnson SB
+%             pd = f_johnson_fit(midpoint);
+%             b0 = pd.coef; % gamma delta xi lambda
+%             if any(INPUT.bounds(:)-b0(3) <= 0)
+%                 b0(3) = min(INPUT.bounds(:)) - eps;
+%             end
+%             if any((INPUT.bounds(:)-b0(3))./b0(4) >= 1)
+%                 b0(4) = 1 ./ (max((INPUT.bounds(:)-b0(3))) + eps);
+%             end
+
     %     case x % Burr
     %         pd = fitdist(midpoint,'Burr','Options',OptimOptFit); % Error - Parto distribution fits better
     %         b0 = pd.ParameterValues; %
