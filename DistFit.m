@@ -33,9 +33,6 @@ elseif any(sum(isfinite(INPUT.bounds),2)==0) % both bounds undefined
     error('Dataset includes observations with infinite bounds')
 elseif any(INPUT.bounds(:,1) > INPUT.bounds(:,2))
     error('Some lower bounds are greater than upper bounds')
-elseif any(INPUT.bounds(:,1) == INPUT.bounds(:,2))
- 	cprintf(rgb('DarkOrange'), 'WARNING: Some of the upper and lower bounds equal - shifting the offending upper bounds by eps \n')
-    INPUT.bounds(INPUT.bounds(:,1) == INPUT.bounds(:,2),2) = INPUT.bounds(INPUT.bounds(:,1) == INPUT.bounds(:,2),2) + eps;
 elseif (dist==[10:21] & INPUT.bounds(:)<=0)
     cprintf(rgb('DarkOrange'), 'WARNING: Adjusting bounds to match the distribution type \n')
     INPUT.bounds(INPUT.bounds(:,1)<=0,1)= eps;
@@ -54,6 +51,7 @@ elseif (dist==[31:32] & any(isinteger(INPUT.bounds(:))==0))
         INPUT.bounds(isinteger(INPUT.bounds(:,2))==0,2) = 0;
     elseif round(INPUT.bounds(INPUT.bounds(:,2))==0,2)>=0
         INPUT.bounds(isinteger(INPUT.bounds(:,2))==0,2) = round(INPUT.bounds(INPUT.bounds(:,2))==0,2);
+    end
 end
     
 %% distribution type:
@@ -173,16 +171,16 @@ if ~exist('b0','var') || isempty(b0)
 end
 
 % check RealMin
-if ~exist('EstimOpt','var') || isempty(EstimOpt) || ~isfield(EstimOpt,'RealMin') || isempty(EstimOpt.RealMin)
-    EstimOpt.RealMin = true;
-end
-if ~islogical(EstimOpt.RealMin)
-    if any(EstimOpt.RealMin == [0,1])
-        EstimOpt.RealMin = (EstimOpt.RealMin==1);
-    else
-        error('EstimOpt.RealMin value not logical')
-    end
-end    
+% if ~exist('EstimOpt','var') || isempty(EstimOpt) || ~isfield(EstimOpt,'RealMin') || isempty(EstimOpt.RealMin)
+%     EstimOpt.RealMin = true;
+% end
+% if ~islogical(EstimOpt.RealMin)
+%     if any(EstimOpt.RealMin == [0,1])
+%         EstimOpt.RealMin = (EstimOpt.RealMin==1);
+%     else
+%         error('EstimOpt.RealMin value not logical')
+%     end
+% end    
     
 % check optimizer options:
 if ~isfield(EstimOpt,'OptimOpt') || isempty(EstimOpt.OptimOpt)
@@ -199,4 +197,4 @@ if ~isfield(EstimOpt,'OptimOpt') || isempty(EstimOpt.OptimOpt)
 end
 
 
-[WTP.beta, WTP.fval, WTP.flag, WTP.out, WTP.grad, WTP.hess] = fminunc(@(b) -sum(LL_DistFit(INPUT.bounds,dist,EstimOpt.RealMin,b)), b0, EstimOpt.OptimOpt);
+[WTP.beta, WTP.fval, WTP.flag, WTP.out, WTP.grad, WTP.hess] = fminunc(@(b) -sum(LL_DistFit(INPUT.bounds,dist,b)), b0, EstimOpt.OptimOpt);
