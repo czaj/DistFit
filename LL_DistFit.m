@@ -1,15 +1,23 @@
-function f = LL_DistFit(bounds, dist, b0)
+function f = LL_DistFit(bounds, dist, Spike, b0)
 
 % save CDF_WTP_tmp
 % return
 
-switch dist
+if Spike
+    pSpike = normcdf(b0(end));
+else
+    pSpike = 0;
+end
 
+switch dist
+    
 % unbounded 
     case 0 % Normal % mu, sigma
         p0 = cdf('Normal',bounds,b0(1),b0(2));
-        p = normcdf(b0(3))*(p0(:,2) - p0(:,1))+(1-normcdf(b0(3)));
-        p(p==0) = pdf('Normal',bounds(p==0,1),b0(1),b0(2));
+        dp = p0(:,2) - p0(:,1);
+        dp(dp==0) = pdf('Normal',bounds(dp==0,1),b0(1),b0(2));
+        p = (1-pSpike)*dp;
+        p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike;
         f = log(p);
     case 1 % Logistic % mu, sigma
         p0 = cdf('Logistic',bounds,b0(1),b0(2)); 
@@ -51,9 +59,11 @@ switch dist
         f = log(p);
     case 11 % Lognormal % mu, sigma
         p0 = cdf('Lognormal',bounds,b0(1),b0(2));        
-        p = normcdf(b0(3))*(p0(:,2) - p0(:,1))+(1-normcdf(b0(3)));
-        p(p==0) = pdf('Lognormal',bounds(p==0,1),b0(1),b0(2));
-        f = log(p);
+        dp = p0(:,2) - p0(:,1);        
+        dp(dp==0) = pdf('Lognormal',bounds(dp==0,1),b0(1),b0(2));
+        p = (1-pSpike)*dp;
+        p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike;
+        f = log(p);        
     case 12 % Loglogistic % mu, sigma
         p0 = cdf('LogLogistic',bounds,b0(1),b0(2));        
         p = normcdf(b0(3))*(p0(:,2) - p0(:,1))+(1-normcdf(b0(3)));
