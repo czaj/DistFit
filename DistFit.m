@@ -1,23 +1,23 @@
-function WTP = DistFit(INPUT, varargin)
+function WTP = DistFit(INPUT, Spike, varargin)
 
 
 %% check no. of inputs
 
-if nargin < 1 
-	error('Too few input arguments for WTPfit(INPUT,dist,b0,OptimOpt)')
-elseif nargin == 1
+if nargin < 2 
+	error('Too few input arguments for DistFit(INPUT,Spike,dist,b0,EstimOpt)')
+elseif nargin == 2
     dist = [];
     b0 = [];
     EstimOpt = [];    
-elseif nargin == 2
+elseif nargin == 3
     dist = varargin{1};
     b0 = [];
     EstimOpt = [];
-elseif nargin == 3
+elseif nargin == 4
     dist = varargin{1};
     b0 = varargin{2};
     EstimOpt = [];
-elseif nargin == 4
+elseif nargin == 5
 	dist = varargin{1};
     b0 = varargin{2};
     EstimOpt = varargin{3};
@@ -57,7 +57,7 @@ elseif dist == 5 && any(INPUT.bounds(:,1) == -Inf)
     INPUT.bounds(:,2) = max(INPUT.bounds,[],2);
 end
 if any(dist == 11:20) && any(INPUT.bounds(:,2) == 0)
-    cprintf(rgb('DarkOrange'), 'WARNING: 0 upper bounds not consistent with lognormalthe distribution type - censoring to eps \n')
+    cprintf(rgb('DarkOrange'), 'WARNING: 0 upper bounds not consistent with lognormal distribution - censoring to eps \n')
     INPUT.bounds(INPUT.bounds(:,2)==0,2) = eps;
 end
 
@@ -83,7 +83,7 @@ end
 
 if exist('b0','var') && ~isempty(b0)
     b0 = b0(:);
-    k = 1*any(dist == [10,14,31]) + 2*any(dist == [0:2,5,11:13,15,16,18:20,32]) + 3*any(dist == [3,4,17]) + 4*any(dist == [6,21]);    
+    k = 2*any(dist == [10,14,31]) + 3*any(dist == [0:2,5,11:13,15,16,18:20,32]) + 4*any(dist == [3,4,17]) + 5*any(dist == [6,21]);    
     if size(b0,2) ~= k
        cprintf(rgb('DarkOrange'), 'WARNING: Incorrect number of starting values - using midpoint-based estimates as starting values \n')
        b0 = [];
@@ -116,64 +116,64 @@ if ~exist('b0','var') || isempty(b0)
 % unbounded
         case 0 % normal
             pd = fitdist(midpoint,'Normal','Options',OptimOptFit);
-            b0 = pd.ParameterValues; % mu, sigma
+            b0 = [pd.ParameterValues Spike*sum(INPUT.bounds(INPUT.bounds(:,1)==INPUT.bounds(:,2),1)==0)/size(INPUT.bounds,1)+(1-Spike)*10]; % mu, sigma
         case 1 % logistic
             pd = fitdist(midpoint,'Logistic','Options',OptimOptFit);
-            b0 = pd.ParameterValues; % mu, sigma
+            b0 = [pd.ParameterValues Spike*sum(INPUT.bounds(INPUT.bounds(:,1)==INPUT.bounds(:,2),1)==0)/size(INPUT.bounds,1)+(1-Spike)*10]; % mu, sigma
         case 2 % Extreme Value
             pd = fitdist(midpoint,'ExtremeValue','Options',OptimOptFit);
-            b0 = pd.ParameterValues; % mu sigma
+            b0 = [pd.ParameterValues Spike*sum(INPUT.bounds(INPUT.bounds(:,1)==INPUT.bounds(:,2),1)==0)/size(INPUT.bounds,1)+(1-Spike)*10]; % mu sigma
         case 3 % Generalized Extreme Value
             pd = fitdist(midpoint,'GeneralizedExtremeValue','Options',OptimOptFit);
-            b0 = pd.ParameterValues; % k, sigma, mu
+            b0 = [pd.ParameterValues Spike*sum(INPUT.bounds(INPUT.bounds(:,1)==INPUT.bounds(:,2),1)==0)/size(INPUT.bounds,1)+(1-Spike)*10]; % k, sigma, mu
         case 4 % tLocationScale
             pd = fitdist(midpoint,'tLocationScale','Options',OptimOptFit);
-            b0 = pd.ParameterValues; % mu, sigma, nu
+            b0 = [pd.ParameterValues Spike*sum(INPUT.bounds(INPUT.bounds(:,1)==INPUT.bounds(:,2),1)==0)/size(INPUT.bounds,1)+(1-Spike)*10]; % mu, sigma, nu
         case 5 % uniform
-            b0 = [min([INPUT.bounds(isfinite(INPUT.bounds));0]),max(INPUT.bounds(isfinite(INPUT.bounds)))];            
+            b0 = [min([INPUT.bounds(isfinite(INPUT.bounds));0]) max(INPUT.bounds(isfinite(INPUT.bounds))) Spike*sum(INPUT.bounds(INPUT.bounds(:,1)==INPUT.bounds(:,2),1)==0)/size(INPUT.bounds,1)+(1-Spike)*10];            
         case 6 % Johnson SU        
             pd = f_johnson_fit(midpoint);
-            b0 =  pd.coef; % gamma delta xi lambda
+            b0 =  [pd.coef Spike*sum(INPUT.bounds(INPUT.bounds(:,1)==INPUT.bounds(:,2),1)==0)/size(INPUT.bounds,1)+(1-Spike)*10]; % gamma delta xi lambda
 % stable
         
 % bounded (0,Inf)        
         case 10 % exponential
             pd = fitdist(midpoint,'Exponential','Options',OptimOptFit);
-            b0 = pd.ParameterValues; % mu        
+            b0 = [pd.ParameterValues Spike*sum(INPUT.bounds(INPUT.bounds(:,1)==INPUT.bounds(:,2),1)==0)/size(INPUT.bounds,1)+(1-Spike)*10]; % mu        
         case 11 % lognormal
             midpoint(midpoint <= 0) = eps;
             pd = fitdist(midpoint,'Lognormal','Options',OptimOptFit);
-            b0 = pd.ParameterValues; % mu, sigma
+            b0 = [pd.ParameterValues Spike*sum(INPUT.bounds(INPUT.bounds(:,1)==INPUT.bounds(:,2),1)==0)/size(INPUT.bounds,1)+(1-Spike)*10]; % mu, sigma
         case 12 % loglogistic
             pd = fitdist(midpoint,'Loglogistic','Options',OptimOptFit);
-            b0 = pd.ParameterValues; % mu, sigma
+            b0 = [pd.ParameterValues Spike*sum(INPUT.bounds(INPUT.bounds(:,1)==INPUT.bounds(:,2),1)==0)/size(INPUT.bounds,1)+(1-Spike)*10]; % mu, sigma
         case 13 % Weibull
             pd = fitdist(midpoint,'Weibull','Options',OptimOptFit);
-            b0 = pd.ParameterValues; % A, B
+            b0 = [pd.ParameterValues Spike*sum(INPUT.bounds(INPUT.bounds(:,1)==INPUT.bounds(:,2),1)==0)/size(INPUT.bounds,1)+(1-Spike)*10]; % A, B
         case 14 % Rayleigh 
             pd = fitdist(midpoint,'Rayleigh','Options',OptimOptFit);
-            b0 = pd.ParameterValues; % B
+            b0 = [pd.ParameterValues Spike*sum(INPUT.bounds(INPUT.bounds(:,1)==INPUT.bounds(:,2),1)==0)/size(INPUT.bounds,1)+(1-Spike)*10]; % B
         case 15 % Gamma
             pd = fitdist(midpoint,'Gamma','Options',OptimOptFit);
-            b0 = pd.ParameterValues; % a, b
+            b0 = [pd.ParameterValues Spike*sum(INPUT.bounds(INPUT.bounds(:,1)==INPUT.bounds(:,2),1)==0)/size(INPUT.bounds,1)+(1-Spike)*10]; % a, b
         case 16 % BirnbaumSaunders
             pd = fitdist(midpoint,'BirnbaumSaunders','Options',OptimOptFit);
-            b0 = pd.ParameterValues; % beta, gamma 
+            b0 = [pd.ParameterValues Spike*sum(INPUT.bounds(INPUT.bounds(:,1)==INPUT.bounds(:,2),1)==0)/size(INPUT.bounds,1)+(1-Spike)*10]; % beta, gamma 
         case 17 % Generalized Pareto
             pd = fitdist(midpoint,'GeneralizedPareto','Options',OptimOptFit);
-            b0 = pd.ParameterValues; % k, sigma, theta
+            b0 = [pd.ParameterValues Spike*sum(INPUT.bounds(INPUT.bounds(:,1)==INPUT.bounds(:,2),1)==0)/size(INPUT.bounds,1)+(1-Spike)*10]; % k, sigma, theta
         case 18 % InverseGaussian
             pd = fitdist(midpoint,'InverseGaussian','Options',OptimOptFit);
-            b0 = pd.ParameterValues; % k, sigma
+            b0 = [pd.ParameterValues Spike*sum(INPUT.bounds(INPUT.bounds(:,1)==INPUT.bounds(:,2),1)==0)/size(INPUT.bounds,1)+(1-Spike)*10]; % k, sigma
         case 19 % Nakagami
             pd = fitdist(midpoint,'Nakagami','Options',OptimOptFit);
-            b0 = pd.ParameterValues; % mu, omega
+            b0 = [pd.ParameterValues Spike*sum(INPUT.bounds(INPUT.bounds(:,1)==INPUT.bounds(:,2),1)==0)/size(INPUT.bounds,1)+(1-Spike)*10]; % mu, omega
         case 20 % Rician
             pd = fitdist(midpoint,'Rician','Options',OptimOptFit);
-            b0 = pd.ParameterValues; % s, sigma
+            b0 = [pd.ParameterValues Spike*sum(INPUT.bounds(INPUT.bounds(:,1)==INPUT.bounds(:,2),1)==0)/size(INPUT.bounds,1)+(1-Spike)*10]; % s, sigma
 %         case 21 % Johnson SB
 %             pd = f_johnson_fit(midpoint);
-%             b0 = pd.coef; % gamma delta xi lambda
+%             b0 = [pd.coef Spike*sum(INPUT.bounds(INPUT.bounds(:,1)==INPUT.bounds(:,2),1)==0)/size(INPUT.bounds,1)+(1-Spike)*10]; % gamma delta xi lambda
 %             save tmp1
 %             b0(3) = min(b0(3),min(INPUT.bounds(:))-eps);
 %             if any((INPUT.bounds(:)-b0(3))./b0(4) >= 1)
@@ -191,10 +191,10 @@ if ~exist('b0','var') || isempty(b0)
 % discrete            
         case 31 % Poisson
             pd = fitdist(midpoint,'Poisson','Options',OptimOptFit);
-            b0 = pd.ParameterValues; % lambda
+            b0 = [pd.ParameterValues Spike*sum(INPUT.bounds(INPUT.bounds(:,1)==INPUT.bounds(:,2),1)==0)/size(INPUT.bounds,1)+(1-Spike)*10]; % lambda
         case 32 % negative binomial
             pd = fitdist(round(midpoint),'NegativeBinomial','Options',OptimOptFit);
-            b0 = pd.ParameterValues; % R, P    
+            b0 = [pd.ParameterValues Spike*sum(INPUT.bounds(INPUT.bounds(:,1)==INPUT.bounds(:,2),1)==0)/size(INPUT.bounds,1)+(1-Spike)*10]; % R, P    
     end
 end
 
