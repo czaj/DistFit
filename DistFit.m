@@ -40,7 +40,7 @@ end
 if size(INPUT.bounds,2) < 2
     error('Providing lower and upper bounds for WTP required')
 elseif any(isnan(INPUT.bounds(:)))
-    error('Some of the lower or upper bounds for WTP missing')
+    error('Some of the lower or upper bounds for WTP missing (NaN)')
 elseif any(sum(isfinite(INPUT.bounds),2)==0) % both bounds infinite
     error('Dataset includes observations with infinite bounds')
 elseif any(INPUT.bounds(:,1) > INPUT.bounds(:,2))
@@ -50,7 +50,17 @@ elseif any(dist == [10:21,31:32]) && any(INPUT.bounds(:,2) < 0)
 elseif any(dist == [10:21,31:32]) && any(INPUT.bounds(:,1) < 0)
     cprintf(rgb('DarkOrange'), 'WARNING: Negative lower bounds not consistent with the distribution type - censoring to 0 \n')
     INPUT.bounds(INPUT.bounds(:,1)<0,1) = 0;
+    INPUT.bounds(:,2) = max(INPUT.bounds,[],2);
+elseif dist == 5 && any(INPUT.bounds(:,1) == -Inf)
+    cprintf(rgb('DarkOrange'), 'WARNING: -Inf lower bounds not consistent with uniform distribution - censoring to minimum bound \n')
+    INPUT.bounds(INPUT.bounds(:,1)==-Inf,1) = min([INPUT.bounds(isfinite(INPUT.bounds));0]);
+    INPUT.bounds(:,2) = max(INPUT.bounds,[],2);
 end
+if any(dist == 11:20) && any(INPUT.bounds(:,2) == 0)
+    cprintf(rgb('DarkOrange'), 'WARNING: 0 upper bounds not consistent with lognormalthe distribution type - censoring to eps \n')
+    INPUT.bounds(INPUT.bounds(:,2)==0,2) = eps;
+end
+
 % perhaps we will need to check if bounds == 0, but let's leave if for later, when the spike option is added. 
 if any(dist == 31:32) && isinteger(INPUT.bounds(isfinite(INPUT.bounds)))
     cprintf(rgb('DarkOrange'), 'WARNING: Rounding up finite bounds to integer values to match the distribution type \n')
@@ -120,7 +130,7 @@ if ~exist('b0','var') || isempty(b0)
             pd = fitdist(midpoint,'tLocationScale','Options',OptimOptFit);
             b0 = pd.ParameterValues; % mu, sigma, nu
         case 5 % uniform
-            b0 = [min(midpoint),max(midpoint)];
+            b0 = [min([INPUT.bounds(isfinite(INPUT.bounds));0]),max(INPUT.bounds(isfinite(INPUT.bounds)))];            
         case 6 % Johnson SU        
             pd = f_johnson_fit(midpoint);
             b0 =  pd.coef; % gamma delta xi lambda
@@ -131,6 +141,7 @@ if ~exist('b0','var') || isempty(b0)
             pd = fitdist(midpoint,'Exponential','Options',OptimOptFit);
             b0 = pd.ParameterValues; % mu        
         case 11 % lognormal
+            midpoint(midpoint <= 0) = eps;
             pd = fitdist(midpoint,'Lognormal','Options',OptimOptFit);
             b0 = pd.ParameterValues; % mu, sigma
         case 12 % loglogistic
@@ -163,9 +174,8 @@ if ~exist('b0','var') || isempty(b0)
 %         case 21 % Johnson SB
 %             pd = f_johnson_fit(midpoint);
 %             b0 = pd.coef; % gamma delta xi lambda
-%             if any(INPUT.bounds(:)-b0(3) <= 0)
-%                 b0(3) = min(INPUT.bounds(:)) - eps;
-%             end
+%             save tmp1
+%             b0(3) = min(b0(3),min(INPUT.bounds(:))-eps);
 %             if any((INPUT.bounds(:)-b0(3))./b0(4) >= 1)
 %                 b0(4) = 1 ./ (max((INPUT.bounds(:)-b0(3))) + eps);
 %             end

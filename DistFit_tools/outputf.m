@@ -4,7 +4,6 @@ persistent LL_backup IterTime
 
 stop = false;
 if isequal(state,'init')
-    IterTime = tic;
     disp('')
 	fprintf('%6s %6s %8s %16s %17s %18s %17s %12s \n','Iter.','Eval.','dB','Step','f(x)','df(x)','Opt. Cond.','Iter. time');
 elseif isequal(state,'iter')
@@ -24,5 +23,6 @@ elseif isequal(state,'iter')
     end
 end
 
-% IterTocNote = toc;
+IterTime = tic;
+
 

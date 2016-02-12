@@ -1,4 +1,12 @@
 function Y = f_johnson_cdf(X,coef,type)
+
+save tmpFJ
+
+% edited to
+% - accept arrays as inputs
+% - allow for -Inf, +Inf values
+% - allow for 0 in SB
+
 % - cumulative probability density function for a Johnson distribution
 %
 % USAGE: Y = f_johnson_cdf(X,coef,type);
