@@ -32,9 +32,12 @@ Distributions = {...
     31  'Poisson'; ...
     32  'Negative_Binomial'};
 
+Spike = 1 % if Spike
+% Spike = 0 % if no Spike
+
 for i = 1:size(Distributions,1);
 %     if i == 6 || i == 9; continue; end
-    WTP.(Distributions{i,2}) = DistFit(INPUT,Distributions{i,1});
+    WTP.(Distributions{i,2}) = DistFit(INPUT,Spike,Distributions{i,1});
 end
 
 for i = 1:size(Distributions,1);
