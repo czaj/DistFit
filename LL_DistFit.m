@@ -55,12 +55,17 @@ switch dist
         p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike;
         f = log(p);
     case 6 % Johnson SU % gamma delta xi lambda
-        p0 = [f_johnson_cdf(bounds(:,1),b0,'SU'),f_johnson_cdf(bounds(:,2),b0,'SU')];        
-        dp = p0(:,2) - p0(:,1);
-        dp(dp==0) = f_johnson_pdf(bounds(p==0,1),b0,'SU');
-        p = (1-pSpike)*dp;
-        p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike;
-        f = log(p);
+%         save tmp1
+%         return
+        p0 = JohnsonCDF(bounds,b0(1:4),'SB');
+%         ... 
+
+%         p0 = [f_johnson_cdf(bounds(:,1),b0,'SU'),f_johnson_cdf(bounds(:,2),b0,'SU')];        
+%         dp = p0(:,2) - p0(:,1);
+%         dp(dp==0) = f_johnson_pdf(bounds(dp==0,1),b0,'SU');
+%         p = (1-pSpike)*dp;
+%         p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike;
+%         f = log(p);
     % stable
         
 % bounded (0,Inf)

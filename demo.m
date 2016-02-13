@@ -6,6 +6,10 @@ DATA.WTPhpU(DATA.WTPhpU == 401) = Inf;
 
 INPUT.bounds = [DATA.WTPfpL DATA.WTPfpU];
 
+% this is for testing:
+INPUT.bounds(2029,2) = Inf;
+INPUT.bounds(2028,2) = 0;
+INPUT.bounds(2027,1) = -Inf;
 
 Distributions = {...
     0  'Normal'; ...
@@ -34,16 +38,16 @@ Distributions = {...
 
 INPUT.Spike = 1; 
 
-%A0 = DistFit(INPUT,0);
+A0 = DistFit(INPUT,6);
 %A11 = DistFit(INPUT,11);
 
- for i = 1:size(Distributions,1);
- %     if i == 6 || i == 9; continue; end
-     WTP.(Distributions{i,2}) = DistFit(INPUT,Distributions{i,1});
- end
- 
- for i = 1:size(Distributions,1);
-     LL(i,1:2) = {Distributions{i,2}, WTP.(Distributions{i,2}).fval}; %#ok<SAGROW>
- end
+%  for i = 1:size(Distributions,1);
+%  %     if i == 6 || i == 9; continue; end
+%      WTP.(Distributions{i,2}) = DistFit(INPUT,Distributions{i,1});
+%  end
+%  
+%  for i = 1:size(Distributions,1);
+%      LL(i,1:2) = {Distributions{i,2}, WTP.(Distributions{i,2}).fval}; %#ok<SAGROW>
+%  end
 
 
