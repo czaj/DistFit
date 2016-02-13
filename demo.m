@@ -34,16 +34,16 @@ Distributions = {...
 
 INPUT.Spike = 1; 
 
-A0 = DistFit(INPUT,0);
-A11 = DistFit(INPUT,11);
+%A0 = DistFit(INPUT,0);
+%A11 = DistFit(INPUT,11);
 
-% for i = 1:size(Distributions,1);
-% %     if i == 6 || i == 9; continue; end
-%     WTP.(Distributions{i,2}) = DistFit(INPUT,Distributions{i,1});
-% end
-% 
-% for i = 1:size(Distributions,1);
-%     LL(i,1:2) = {Distributions{i,2}, WTP.(Distributions{i,2}).fval}; %#ok<SAGROW>
-% end
+ for i = 1:size(Distributions,1);
+ %     if i == 6 || i == 9; continue; end
+     WTP.(Distributions{i,2}) = DistFit(INPUT,Distributions{i,1});
+ end
+ 
+ for i = 1:size(Distributions,1);
+     LL(i,1:2) = {Distributions{i,2}, WTP.(Distributions{i,2}).fval}; %#ok<SAGROW>
+ end
 
 
