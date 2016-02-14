@@ -1,23 +1,54 @@
-function f = LL_DistFit(bounds, dist, Spike, b0)
+function f = LL_DistFit(bounds, X, dist, SpikeTrue, b0)
 
 % save CDF_WTP_tmp
 % return
 
-if Spike
-    pSpike = normcdf(b0(end));
-else
+b0 = b0(:);
+
+numDistParam = 1*any(dist == [10,14,31]) + 2*any(dist == [0:2,5,11:13,15,16,18:20,32]) + 3*any(dist == [3,4,17]) + 4*any(dist == [6,21]);
+
+XCovSize = size(X,2);
+% XCovTrue = size(X,2)>0;
+
+BDist = b0(1:numDistParam); % distribution parameters
+if SpikeTrue 
+    if XCovSize > 0 % Spike and X
+        BpSpike = b0(numDistParam+1);
+        BCovDist = b0(numDistParam+1+1:numDistParam*(1+XCovSize)+1);
+        BCovSpike = b0(numDistParam*(1+XCovSize)+1+1:(numDistParam+1)*(1+XCovSize));
+    else % Spike only
+        BpSpike = b0(numDistParam+1);
+        BCovDist = zeros(numDistParam*XCovSize,0); % []
+        BCovSpike = zeros(XCovSize,0); % []
+    end
+    pSpike = normcdf(BpSpike+X*BCovSpike);
+else 
+    if XCovSize > 0 % X only
+%         BpSpike = zeros(1,0); % []
+        BCovDist = b0(numDistParam+1:numDistParam*(1+XCovSize));
+%         BCovSpike = zeros(XCovSize,0); % []
+    else % baseline distribution only
+%         BpSpike = zeros(1,0); % []
+        BCovDist = zeros(numDistParam*XCovSize,0); % []
+%         BCovSpike = zeros(XCovSize,0); % []
+    end
     pSpike = 0;
 end
+
 
 switch dist
     
 % unbounded 
     case 0 % Normal % mu, sigma
-        p0 = cdf('Normal',bounds,b0(1),b0(2));
-        dp = p0(:,2) - p0(:,1);
-        dp(dp==0) = pdf('Normal',bounds(dp==0,1),b0(1),b0(2));
-        p = (1-pSpike)*dp;
-        p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike;
+%         p0 = cdf('Normal',bounds,BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2));
+        dp = cdf('Normal',bounds(:,2),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2)) - ...
+             cdf('Normal',bounds(:,1),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2));
+        bounds_min = (min(abs(bounds.')) .* (2*(abs(min(bounds.')) < max(bounds.'))-1)).'; % lower of the absolute value of bounds
+%         tic; [~,I] = min(abs(bounds),[],2); ...
+%         bounds_min = bounds(sub2ind(size(bounds),(1:size(bounds,1)).',I)); toc % same thing differently, saved as a note
+        dp(dp==0) = pdf('Normal',bounds_min(dp==0,1),BDist(1)+X(dp==0,:)*BCovDist(1:XCovSize),BDist(2)+X(dp==0,:)*BCovDist(XCovSize+1:XCovSize*2)); % replace 0 cdf difference with pdf at lower absolute bound (if extreme bounds or exact x known)
+        p = (1-pSpike).*dp; % scale down to allow for the probability of spike
+        p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike(bounds(:,1) <= 0 & 0 <= bounds(:,2)); % add spike probability to observations with 0 in bounds
         f = log(p);
     case 1 % Logistic % mu, sigma
         p0 = cdf('Logistic',bounds,b0(1),b0(2)); 

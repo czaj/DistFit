@@ -5,6 +5,11 @@ DATA.WTPfpU(DATA.WTPfpU == 401) = Inf;
 DATA.WTPhpU(DATA.WTPhpU == 401) = Inf;
 
 INPUT.bounds = [DATA.WTPfpL DATA.WTPfpU];
+% 1-400 €  month or less, 2-600 - 800 €  month, 3-800 - 1000 €  month, 4-1000 - 1600 € month, 5-1600  € month or more
+
+DATA.inc_norm = DATA.INCOME;
+DATA.inc_norm(~isnan(DATA.INCOME)) = (DATA.INCOME(~isnan(DATA.INCOME)) - mean(DATA.INCOME(~isnan(DATA.INCOME)))) ./ std(DATA.INCOME(~isnan(DATA.INCOME)));
+INPUT.X = [2015-DATA.ROK_UR, DATA.EDU==2, DATA.EDU==3,DATA.EDU==4,DATA.inc_norm];
 
 % this is for testing:
 INPUT.bounds(2029,2) = Inf;
@@ -36,9 +41,9 @@ Distributions = {...
     31  'Poisson'; ...
     32  'Negative_Binomial'};
 
-INPUT.Spike = 1; 
+INPUT.SpikeTrue = 1; 
 
-A0 = DistFit(INPUT,6);
+A0 = DistFit(INPUT,0);
 %A11 = DistFit(INPUT,11);
 
 %  for i = 1:size(Distributions,1);
