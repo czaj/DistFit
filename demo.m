@@ -10,6 +10,7 @@ INPUT.bounds = [DATA.WTPfpL DATA.WTPfpU];
 DATA.inc_norm = DATA.INCOME;
 DATA.inc_norm(~isnan(DATA.INCOME)) = (DATA.INCOME(~isnan(DATA.INCOME)) - mean(DATA.INCOME(~isnan(DATA.INCOME)))) ./ std(DATA.INCOME(~isnan(DATA.INCOME)));
 INPUT.X = [2015-DATA.ROK_UR, DATA.EDU==2, DATA.EDU==3,DATA.EDU==4,DATA.inc_norm];
+INPUT.NamesX = {'age','edu = 2','edu = 3','edu = 4','income normalized'};
 
 % this is for testing:
 INPUT.bounds(2029,2) = Inf;
@@ -22,7 +23,7 @@ Distributions = {...
     2  'Extreme_Value'; ...
     3  'Generalized_Extreme_Value'; ...
     4  'tLocationScale'; ...
-    5  'Uniform'; ...
+%     5  'Uniform'; ...
 %    6  'Johnson_SU'; ...
 
     10  'Expotential'; ...
@@ -46,13 +47,12 @@ INPUT.SpikeTrue = 1;
 % A0 = DistFit(INPUT,0);
 % A11 = DistFit(INPUT,11);
 
-  for i = 1:size(Distributions,1);
-%  %     if i == 6 || i == 9; continue; end
-      WTP.(Distributions{i,2}) = DistFit(INPUT,Distributions{i,1});
-  end
-%  
-%  for i = 1:size(Distributions,1);
-%      LL(i,1:2) = {Distributions{i,2}, WTP.(Distributions{i,2}).fval}; %#ok<SAGROW>
-%  end
+for i = 1:size(Distributions,1);
+    WTP.(Distributions{i,2}) = DistFit(INPUT,Distributions{i,1});
+end
+ 
+for i = 1:size(Distributions,1);
+    LL(i,1:2) = {Distributions{i,2}, WTP.(Distributions{i,2}).fval}; %#ok<SAGROW>
+end
 
 

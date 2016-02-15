@@ -77,16 +77,18 @@ switch dist
         p = (1-pSpike).*dp; 
         p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike(bounds(:,1) <= 0 & 0 <= bounds(:,2));
         f = log(p);
-    case 4 % tLocationScale % mu, sigma, nu 
-        dp = cdf('tLocationScale',bounds(:,2),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2),BDist(3)+X*BCovDist(XCovSize*2+1:XCovSize*3)) - ...
-             cdf('tLocationScale',bounds(:,1),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2),BDist(3)+X*BCovDist(XCovSize*2+1:XCovSize*3));
+    case 4 % tLocationScale % mu, sigma>0, nu>0 
+        dp = cdf('tLocationScale',bounds(:,2),BDist(1)+X*BCovDist(1:XCovSize),BDist(2).*exp(X*BCovDist(XCovSize+1:XCovSize*2)),BDist(3).*exp(X*BCovDist(XCovSize*2+1:XCovSize*3))) - ...
+             cdf('tLocationScale',bounds(:,1),BDist(1)+X*BCovDist(1:XCovSize),BDist(2).*exp(X*BCovDist(XCovSize+1:XCovSize*2)),BDist(3).*exp(X*BCovDist(XCovSize*2+1:XCovSize*3)));
         [~,I] = min(abs(bounds),[],2); ... 
         bounds_min = bounds(sub2ind(size(bounds),(1:size(bounds,1)).',I)); 
-        dp(dp==0) = pdf('tLocationScale',bounds_min(dp==0,1),BDist(1)+X(dp==0,:)*BCovDist(1:XCovSize),BDist(2)+X(dp==0,:)*BCovDist(XCovSize+1:XCovSize*2),BDist(3)+X(dp==0,:)*BCovDist(XCovSize*2+1:XCovSize*3)); 
+        dp(dp==0) = pdf('tLocationScale',bounds_min(dp==0,1),BDist(1)+X(dp==0,:)*BCovDist(1:XCovSize),BDist(2).*exp(X(dp==0,:)*BCovDist(XCovSize+1:XCovSize*2)),BDist(3).*exp(X(dp==0,:)*BCovDist(XCovSize*2+1:XCovSize*3))); 
         p = (1-pSpike).*dp; 
         p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike(bounds(:,1) <= 0 & 0 <= bounds(:,2));
         f = log(p);
     case 5 % Uniform % min, max
+%         save tmp2
+%         return
         dp = cdf('Uniform',bounds(:,2),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2)) - ...
              cdf('Uniform',bounds(:,1),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2));
         [~,I] = min(abs(bounds),[],2); ... 
@@ -98,7 +100,7 @@ switch dist
     case 6 % Johnson SU % gamma delta xi lambda
 %         save tmp1
 %         return
-        p0 = JohnsonCDF(bounds,b0(1:4),'SB');
+%         p0 = JohnsonCDF(bounds,b0(1:4),'SB');
 %         ... 
 
 %         p0 = [f_johnson_cdf(bounds(:,1),b0,'SU'),f_johnson_cdf(bounds(:,2),b0,'SU')];        
