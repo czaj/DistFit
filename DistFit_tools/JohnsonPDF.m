@@ -1,7 +1,4 @@
-function p = JohnsonCDF(x,B,type)
-
-% save Johnson_tmp
-% return
+function p = JohnsonPDF(x,B,type)
 
 B = B(:);
 
@@ -14,7 +11,7 @@ switch type
         delta = B(2); % shape parameter #2
         mi = B(3); % location parameter
         sigma = B(4); % scale parameter
-        p = 0.5*(1+erf((gamma+delta*asinh((x-mi)/sigma))/(2^0.5)));
+        p = (exp(-0.5*(gamma+delta*arcsinh((x-mi)/sigma))^2)*delta)./((2*pi)^(0.5)*((x-mi)^2+sigma^2)^(0.5));
 	case 'SL' % semi-bounded
         if size(B,1)~=4
             error('Incorrect number of parameters - Johnson SU requires 4 parameters')
@@ -24,10 +21,8 @@ switch type
         mi = B(3); % location parameter
         sigma = B(4); % scale parameter
         p = zeros(size(x));
-        p((x > mi) & (x <= mi+sigma)) = 0.5*erfc(-(gamma+delta*log((x((x > mi) & (x <= mi+sigma))-mi)./sigma))/(2^0.5));
-        p(x > mi + sigma) = 0.5*(1+erf((gamma+delta*log((x(x > mi + sigma)-mi)./sigma))/(2^0.5)));
-        p(x <= mi) = 0; % Co dla x <=  mi? Czy wg Wolframa to 0? Bo to wg mnie jest
-        % niejasne, tam jest s³owo "true" zamiast przedzia³u.
+        p(x > mi) = (exp(-0.5*(gamma+delta*arcsinh((x(x > mi)-mi)/sigma))^2)*delta)./((2*pi)^(0.5)*(x(x > mi)-mi));
+        p(x <= mi) = 0; % Czy to siê zgadza? 
 	case 'SL0' % semi-bounded (at 0)
         if size(B,1)~=3
             if size(B,1)==4 && B(3) == 0
@@ -45,11 +40,9 @@ switch type
             sigma = B(3); % scale parameter            
         end        
         p = zeros(size(x));
-        % Rozumiem, ¿e mo¿na tu zostawiæ mi, bo zostanie za to podstawione
-        % 0, prawda? To chyba taki sam wzór jak na SL, tak? Skopiowa³am.
-        p((x > mi) & (x <= mi+sigma)) = 0.5*erfc(-(gamma+delta*log((x((x > mi) & (x <= mi+sigma))-mi)./sigma))/(2^0.5));
-        p(x > mi + sigma) = 0.5*(1+erf((gamma+delta*log((x(x > mi + sigma)-mi)./sigma))/(2^0.5)));
-        p(x <= mi) = 0; % Zgadza siê?
+        % Pozostawi³am mi i skopiowa³am z SL.
+        p(x > mi) = (exp(-0.5*(gamma+delta*arcsinh((x(x > mi)-mi)/sigma))^2)*delta)./((2*pi)^(0.5)*(x(x > mi)-mi));
+        p(x <= mi) = 0; % Czy to siê zgadza? 
 	case 'SB' % bounded
         if size(B,1)~=4
             error('Incorrect number of parameters - Johnson SU requires 4 parameters')
@@ -59,10 +52,8 @@ switch type
         mi = B(3); % location parameter
         sigma = B(4); % scale parameter
         p = zeros(size(x));
-        p((x > mi) & (x < mi+sigma/2)) = 0.5*erfc(-(gamma+delta*log((x((x > mi) & (x < mi+sigma/2))-mi)./(-x((x > mi) & (x < mi+sigma/2))+mi+sigma)))/(2^0.5));
-        p((x >= mi + sigma/2) & (x < mi + sigma)) = 0.5*(1+erf((gamma+delta*log((x((x >= mi + sigma/2) & (x < mi + sigma))-mi)./(-x((x >= mi + sigma/2) & (x < mi + sigma))+mi+sigma)))/(2^0.5)));
-        p(x >=  mi + sigma) = 1;    
-        p(x <= mi) = 0; % Zgadza siê?
+        p((x > mi) & (x < mi + sigma)) = (exp(-0.5*(gamma+delta*log((x((x > mi) & (x < mi + sigma))-mi)./(-x((x > mi) & (x < mi + sigma))+mi+sigma)))^2)*delta*sigma)./((2*pi)^(0.5)*(x((x > mi) & (x < mi + sigma))-mi)*(-x((x > mi) & (x < mi + sigma))+mi+sigma));
+        p((x <= mi) | (x >= mi + sigma)) = 0; % Czy to siê zgadza? 
    case 'SB0' % bounded (at 0)
         if size(B,1)~=3
             if size(B,1)==4 && B(3) == 0
@@ -81,10 +72,8 @@ switch type
         end        
         % Znowu przeklei³am z SB, bo to chyba to samo...
         p = zeros(size(x));
-        p((x > mi) & (x < mi+sigma/2)) = 0.5*erfc(-(gamma+delta*log((x((x > mi) & (x < mi+sigma/2))-mi)./(-x((x > mi) & (x < mi+sigma/2))+mi+sigma)))/(2^0.5));
-        p((x >= mi + sigma/2) & (x < mi + sigma)) = 0.5*(1+erf((gamma+delta*log((x((x >= mi + sigma/2) & (x < mi + sigma))-mi)./(-x((x >= mi + sigma/2) & (x < mi + sigma))+mi+sigma)))/(2^0.5)));
-        p(x >=  mi + sigma) = 1;    
-        p(x <= mi) = 0; % Zgadza siê?
+        p((x > mi) & (x < mi + sigma)) = (exp(-0.5*(gamma+delta*log((x((x > mi) & (x < mi + sigma))-mi)./(-x((x > mi) & (x < mi + sigma))+mi+sigma)))^2)*delta*sigma)./((2*pi)^(0.5)*(x((x > mi) & (x < mi + sigma))-mi)*(-x((x > mi) & (x < mi + sigma))+mi+sigma));
+        p((x <= mi) | (x >= mi + sigma)) = 0; % Czy to siê zgadza? 
    otherwise
       error('Unknown distribution type');
 end

@@ -108,6 +108,28 @@ else
     end
 end
 
+% if isempty(INPUT.ConditionWT)
+%     INPUT.ConditionWT = false;
+% end
+% if ~isempty(INPUT.ConditionWT) && ~islogical(INPUT.ConditionWT)
+%     error('Wrongly specified condition for weighing observations')
+% end
+% if isempty(INPUT.WT)
+%     INPUT.WT = false;
+% end
+% if size(INPUT.WT,2) ~= size(INPUT.X,2)
+%     error('Number of weights not consistent with the number of explanatory variables')
+% end
+% if ~isempty(INPUT.WT) && (size(INPUT.WT,2) == size(INPUT.X,2)) && ~isempty(INPUT.ConditionWT) && islogical(INPUT.ConditionWT)
+%     for i = 1:size(INPUT.X,1);
+%         if i(INPUT.ConditionWT==1) % Nie wiem, jak zrobiæ to przemno¿enie... Próbowa³am tak, ale nie dzia³a.
+%             for j = 1:size(INPUT.X,2)
+%             INPUT.X(i,j) = INPUT.X(i,j)*INPUT.WT(j);
+%             end
+%         end
+%     end
+% end
+
 numDistParam = 1*any(dist == [10,14,31]) + 2*any(dist == [0:2,5,11:13,15,16,18:20,32]) + 3*any(dist == [3,4,17]) + 4*any(dist == [6,21]);
 numX = size(INPUT.X,2);
 numB = (numDistParam + INPUT.SpikeTrue) * (1 + numX);

@@ -12,6 +12,9 @@ DATA.inc_norm(~isnan(DATA.INCOME)) = (DATA.INCOME(~isnan(DATA.INCOME)) - mean(DA
 INPUT.X = [2015-DATA.ROK_UR, DATA.EDU==2, DATA.EDU==3,DATA.EDU==4,DATA.inc_norm];
 INPUT.NamesX = {'age','edu = 2','edu = 3','edu = 4','income normalized'};
 
+%INPUT.ConditionWT = INPUT.X(:,2)==1; % Logical condition, which observations should be weighed
+%INPUT.WT = [0.5 3 2 1 4]; % Weights assigned to each explanatory variable
+
 % this is for testing:
 INPUT.bounds(2029,2) = Inf;
 INPUT.bounds(2028,2) = 0;
@@ -44,7 +47,7 @@ Distributions = {...
 
 INPUT.SpikeTrue = 1; 
 
-% A0 = DistFit(INPUT,0);
+%  A0 = DistFit(INPUT,0);
 % A11 = DistFit(INPUT,11);
 
 for i = 1:size(Distributions,1);

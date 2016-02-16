@@ -98,6 +98,18 @@ switch dist
         p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike(bounds(:,1) <= 0 & 0 <= bounds(:,2));
         f = log(p);
     case 6 % Johnson SU % gamma delta xi lambda
+        % Skoro s¹ te "covariates" parametrów rozk³adu, to czy zamiast
+        % JohnsonCDF(x,B,type), nie lepiej mieæ JohnsonCDF(x,gamma, delta, mi, sigma,type)?
+        % Jak maj¹c JohnsonCDF(x,B,type), wprowadziæ covariates parametrów?
+        % Czy tak, jak poni¿ej:
+        dp = JohnsonCDF(bounds(:,2),BDist+X*BCovDist(1:XCovSize*4),'SU') - ...
+             JohnsonCDF(bounds(:,1),BDist+X*BCovDist(1:XCovSize*4),'SU');
+        [~,I] = min(abs(bounds),[],2); ... 
+        bounds_min = bounds(sub2ind(size(bounds),(1:size(bounds,1)).',I)); 
+        dp(dp==0) = JohnsonCDF(bounds_min(dp==0,1),BDist+X(dp==0,:)*BCovDist(1:XCovSize*4),'SU'); 
+        p = (1-pSpike).*dp; 
+        p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike(bounds(:,1) <= 0 & 0 <= bounds(:,2));
+        f = log(p);
 %         save tmp1
 %         return
 %         p0 = JohnsonCDF(bounds,b0(1:4),'SB');
@@ -211,7 +223,17 @@ switch dist
         p = (1-pSpike).*dp; 
         p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike(bounds(:,1) <= 0 & 0 <= bounds(:,2));
         f = log(p);
-%     case 21 % Johnson SB % gamma delta xi lambda 
+     case 21 % Johnson SB % gamma delta xi lambda 
+        % Jak maj¹c JohnsonCDF(x,B,type), wprowadziæ covariates parametrów?
+        % Czy tak, jak poni¿ej:
+        dp = JohnsonCDF(bounds(:,2),BDist+X*BCovDist(1:XCovSize*4),'SB') - ...
+             JohnsonCDF(bounds(:,1),BDist+X*BCovDist(1:XCovSize*4),'SB');
+        [~,I] = min(abs(bounds),[],2); ... 
+        bounds_min = bounds(sub2ind(size(bounds),(1:size(bounds,1)).',I)); 
+        dp(dp==0) = JohnsonCDF(bounds_min(dp==0,1),BDist+X(dp==0,:)*BCovDist(1:XCovSize*4), 'SB'); 
+        p = (1-pSpike).*dp; 
+        p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike(bounds(:,1) <= 0 & 0 <= bounds(:,2));
+        f = log(p);
 %         save tmp2
 %         p0 = [f_johnson_cdf(bounds(:,1),b0,'SB'),f_johnson_cdf(bounds(:,2),b0,'SB')];        
 %         p = normcdf(b0(5))*(p0(:,2) - p0(:,1))+(1-normcdf(b0(5)));
