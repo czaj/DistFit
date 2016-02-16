@@ -321,7 +321,7 @@ end
 
 [WTP.beta, WTP.fval, WTP.flag, WTP.out, WTP.grad, WTP.hess] = fminunc(@(b) -sum(LL_DistFit(INPUT.bounds,INPUT.X,dist,INPUT.SpikeTrue,b)), b0, INPUT.OptimOpt);
 
-% save tmp1
+ save tmp1
 % return
 
 WTP.beta = WTP.beta';
@@ -379,14 +379,14 @@ switch dist
         R_out(3,1:5) = head;
         R_out(3,6:9) = head(2:5);  
      case 3 % Generalized Extreme Value % k, sigma, mu
-        R_out(2,2) = {'k'};
+        R_out(2,2) = {'k'}
         R_out(2,6) = {'sigma'};
         R_out(2,10) = {'mu'};
         R_out(3,1:5) = head;
         R_out(3,6:9) = head(2:5);  
         R_out(3,10:13) = head(2:5);  
      case 4 % tLocationScale % mu, sigma>0, nu>0 
-        R_out(2,2) = {'mu'};
+        R_out(2,2) = {'mu'}
         R_out(2,6) = {'sigma'};
         R_out(2,10) = {'nu'};
         R_out(3,1:5) = head;
@@ -397,15 +397,8 @@ switch dist
         R_out(2,6) = {'max'};
         R_out(3,1:5) = head;
         R_out(3,6:9) = head(2:5);  
-     case 6 % Johnson SU % gamma delta xi lambda 
-        R_out(2,2) = {'gamma'};
-        R_out(2,6) = {'delta'};
-        R_out(2,10) = {'xi'};
-        R_out(2,14) = {'lambda'};
-        R_out(3,1:5) = head;
-        R_out(3,6:9) = head(2:5);  
-        R_out(3,10:13) = head(2:5);  
-        R_out(3,14:17) = head(2:5);  
+%     case 6 % Johnson SU % gamma delta xi lambda 
+
      case 10 % exponential % mu
         R_out(2,2) = {'mu'};
         R_out(3,1:5) = head;
@@ -438,36 +431,28 @@ switch dist
         R_out(3,1:5) = head;
         R_out(3,6:9) = head(2:5);  
      case 17 % Generalized Pareto % k, sigma, theta
-        R_out(2,2) = {'k'};
-        R_out(2,6) = {'sigma'};
-        R_out(2,10) = {'theta'};
-        R_out(3,1:5) = head;
-        R_out(3,6:9) = head(2:5);  
-        R_out(3,10:13) = head(2:5);  
+%         pd = fitdist(midpoint,'GeneralizedPareto','Options',OptimOptFit);
+%         b0 = pd.ParameterValues; 
      case 18 % InverseGaussian % k, sigma
         R_out(2,2) = {'k'};
         R_out(2,6) = {'sigma'};
         R_out(3,1:5) = head;
         R_out(3,6:9) = head(2:5);  
      case 19 % Nakagami % mu, omega
-        R_out(2,2) = {'mu'};
-        R_out(2,6) = {'omega'};
-        R_out(3,1:5) = head;
-        R_out(3,6:9) = head(2:5);  
-     case 20 % Rician % s, sigma
-        R_out(2,2) = {'s'};
-        R_out(2,6) = {'sigma'};
-        R_out(3,1:5) = head;
-        R_out(3,6:9) = head(2:5);     
-    case 21 % Johnson SB % gamma delta xi lambda 
-        R_out(2,2) = {'gamma'};
-        R_out(2,6) = {'delta'};
-        R_out(2,10) = {'xi'};
-        R_out(2,14) = {'lambda'};
-        R_out(3,1:5) = head;
-        R_out(3,6:9) = head(2:5);  
-        R_out(3,10:13) = head(2:5);  
-        R_out(3,14:17) = head(2:5);  
+%         pd = fitdist(midpoint,'Nakagami','Options',OptimOptFit);
+%         b0 = pd.ParameterValues;
+     case 20 % Rician
+%         pd = fitdist(midpoint,'Rician','Options',OptimOptFit);
+%         b0 = pd.ParameterValues; % s, sigma
+%         %         case 21 % Johnson SB
+%         %             pd = f_johnson_fit(midpoint);
+%         %             b0 = [pd.coef Spike*sum(INPUT.bounds(INPUT.bounds(:,1)==INPUT.bounds(:,2),1)==0)/size(INPUT.bounds,1)+(1-Spike)*10]; % gamma delta xi lambda
+%         %             save tmp1
+%         %             b0(3) = min(b0(3),min(INPUT.bounds(:))-eps);
+%         %             if any((INPUT.bounds(:)-b0(3))./b0(4) >= 1)
+%         %                 b0(4) = 1 ./ (max((INPUT.bounds(:)-b0(3))) + eps);
+%         %             end
+%         
 %         %     case x % Burr
 %         %         pd = fitdist(midpoint,'Burr','Options',OptimOptFit); % Error - Parto distribution fits better
 %         %         b0 = pd.ParameterValues; %
@@ -475,15 +460,14 @@ switch dist
 %         % %         b0 =
 %         %     elseif dist==24 % sinh-arcsinh
 %         % %         b0 =
-      
-     case 31 % Poisson % lambda
-        R_out(2,2) = {'lambda'};
-        R_out(3,1:5) = head;
-     case 32 % negative binomial % R, P
-        R_out(2,2) = {'R'};
-        R_out(2,6) = {'P'};
-        R_out(3,1:5) = head;
-        R_out(3,6:9) = head(2:5);  
+%         
+%         % discrete
+     case 31 % Poisson
+%         pd = fitdist(midpoint,'Poisson','Options',OptimOptFit);
+%         b0 = pd.ParameterValues; % lambda
+     case 32 % negative binomial
+%         pd = fitdist(round(midpoint),'NegativeBinomial','Options',OptimOptFit);
+%         b0 = pd.ParameterValues; % R, P
 end
    
 for i = 1:numDistParam
