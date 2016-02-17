@@ -500,9 +500,120 @@ WTP.R_out = R_out;
 
 
 
+% Poczatek do wyswietlania wynikow...
+
+if ~isfield(OptimOptFit, 'NVARA') || isempty(OptimOptFit.NVARA)
+    OptimOptFit.NVARA = size(INPUT.X,2);
+end
+if ~isfield(OptimOptFit, 'spacing') || isempty(OptimOptFit.spacing)
+    OptimOptFit.spacing = 4;
+end
+if ~isfield(OptimOptFit, 'precision') || isempty(OptimOptFit.precision)
+    OptimOptFit.precision = 4;
+end
+
+s = OptimOptFit.spacing;
+prec = OptimOptFit.precision;
+
+c1 = [R_out(4:OptimOptFit.NVARA+4,1)]; % Variable names
+s1 = max(cellfun(@(x) numel(x), c1)); 
+
+c2 = [R_out(4:OptimOptFit.NVARA+4,2)]; % BDist(1)
+c2 = c2(cellfun(@(x) ~isempty(x),c2));
+c2 = c2(cellfun(@(x) isfinite(x),c2)); 
+s2 = max([max(cellfun(@(x) floor(log10(max(abs(x)))), c2))+1,1])+prec+1;
+c3 = [R_out(4:OptimOptFit.NVARA+4,3)]; % stars
+s3 = max(cellfun(@(x) numel(x), c3));
+c4 = [R_out(4:OptimOptFit.NVARA+4,4)]; % s.e.
+c4 = c4(cellfun(@(x) ~isempty(x),c4));
+c4 = c4(cellfun(@(x) isfinite(x),c4)); 
+s4 = max([max(cellfun(@(x) floor(log10(max(abs(x)))), c4))+1,1])+prec+1;
+c5 = [R_out(4:OptimOptFit.NVARA+4,5)]; % p-value
+c5 = c5(cellfun(@(x) ~isempty(x),c5));
+c5 = c5(cellfun(@(x) isfinite(x),c5)); 
+s5 = max([max(cellfun(@(x) floor(log10(max(abs(x)))), c5))+1,1])+prec+1;
+
+if numDistParam > 1
+c6 = [R_out(4:OptimOptFit.NVARA+4,6)]; % BDist(2)
+c6 = c6(cellfun(@(x) ~isempty(x),c6));
+c6 = c6(cellfun(@(x) isfinite(x),c6)); 
+s6 = max([max(cellfun(@(x) floor(log10(max(abs(x)))), c6))+1,1])+prec+1;
+c7 = [R_out(4:OptimOptFit.NVARA+4,7)]; % stars
+s7 = max(cellfun(@(x) numel(x), c7));
+c8 = [R_out(4:OptimOptFit.NVARA+4,8)]; % s.e.
+c8 = c8(cellfun(@(x) ~isempty(x),c8));
+c8 = c8(cellfun(@(x) isfinite(x),c8)); 
+s8 = max([max(cellfun(@(x) floor(log10(max(abs(x)))), c8))+1,1])+prec+1;
+c9 = [R_out(4:OptimOptFit.NVARA+4,9)]; % p-value
+c9 = c9(cellfun(@(x) ~isempty(x),c9));
+c9 = c9(cellfun(@(x) isfinite(x),c9)); 
+s9 = max([max(cellfun(@(x) floor(log10(max(abs(x)))), c9))+1,1])+prec+1;
+end
+
+if numDistParam > 2
+c10 = [R_out(4:OptimOptFit.NVARA+4,10)]; % BDist(3)
+c10 = c10(cellfun(@(x) ~isempty(x),c10));
+c10 = c10(cellfun(@(x) isfinite(x),c10)); 
+s10 = max([max(cellfun(@(x) floor(log10(max(abs(x)))), c10))+1,1])+prec+1;
+c11 = [R_out(4:OptimOptFit.NVARA+4,11)]; % stars
+s11 = max(cellfun(@(x) numel(x), c11));
+c12 = [R_out(4:OptimOptFit.NVARA+4,12)]; % s.e.
+c12 = c12(cellfun(@(x) ~isempty(x),c12));
+c12 = c12(cellfun(@(x) isfinite(x),c12)); 
+s12 = max([max(cellfun(@(x) floor(log10(max(abs(x)))), c12))+1,1])+prec+1;
+c13 = [R_out(4:OptimOptFit.NVARA+4,13)]; % p-value
+c13 = c13(cellfun(@(x) ~isempty(x),c13));
+c13 = c13(cellfun(@(x) isfinite(x),c13)); 
+s13 = max([max(cellfun(@(x) floor(log10(max(abs(x)))), c13))+1,1])+prec+1;
+end
+
+if numDistParam > 3
+c14 = [R_out(4:OptimOptFit.NVARA+4,14)]; % BDist(4)
+c14 = c14(cellfun(@(x) ~isempty(x),c14));
+c14 = c14(cellfun(@(x) isfinite(x),c14)); 
+s14 = max([max(cellfun(@(x) floor(log10(max(abs(x)))), c14))+1,1])+prec+1;
+c15 = [R_out(4:OptimOptFit.NVARA+4,15)]; % stars
+s15 = max(cellfun(@(x) numel(x), c15));
+c16 = [R_out(4:OptimOptFit.NVARA+4,16)]; % s.e.
+c16 = c16(cellfun(@(x) ~isempty(x),c16));
+c16 = c16(cellfun(@(x) isfinite(x),c16)); 
+s16 = max([max(cellfun(@(x) floor(log10(max(abs(x)))), c16))+1,1])+prec+1;
+c17 = [R_out(4:OptimOptFit.NVARA+4,17)]; % p-value
+c17 = c17(cellfun(@(x) ~isempty(x),c17));
+c17 = c17(cellfun(@(x) isfinite(x),c17)); 
+s17 = max([max(cellfun(@(x) floor(log10(max(abs(x)))), c17))+1,1])+prec+1;
+end
+
+if INPUT.SpikeTrue
+cS1 = [R_out(4:OptimOptFit.NVARA+4,1+4*numDistParam+1)]; % Spike
+cS1 = cS1(cellfun(@(x) ~isempty(x),cS1));
+cS1 = cS1(cellfun(@(x) isfinite(x),cS1)); 
+sS1 = max([max(cellfun(@(x) floor(log10(max(abs(x)))), cS1))+1,1])+prec+1;
+cS2 = [R_out(4:OptimOptFit.NVARA+4,1+4*numDistParam+2)]; % stars
+sS2 = max(cellfun(@(x) numel(x), cS2));
+cS3 = [R_out(4:OptimOptFit.NVARA+4,1+4*numDistParam+3)]; % s.e.
+cS3 = cS3(cellfun(@(x) ~isempty(x),cS3));
+cS3 = cS3(cellfun(@(x) isfinite(x),cS3)); 
+sS3 = max([max(cellfun(@(x) floor(log10(max(abs(x)))), cS3))+1,1])+prec+1;
+cS4 = [R_out(4:OptimOptFit.NVARA+4,1+4*numDistParam+4)]; % p-value
+cS4 = cS4(cellfun(@(x) ~isempty(x),cS4));
+cS4 = cS4(cellfun(@(x) isfinite(x),cS4)); 
+sS4 = max([max(cellfun(@(x) floor(log10(max(abs(x)))), cS4))+1,1])+prec+1;
+end
 
 
 
+% Jesli to, co powyzej ok, to tu sie pojawia dalsze komendy zwiazane z
+% fprintf, ktora na razie wyglada dosc magicznie...
 
-
+% fprintf('\n%*s\n\n', (s1+s2+3+s4+prec+2+s*5 + s6+1+s8+3+s10+prec+2+s*4 + size(R_out{1,1},2))/2,R_out{1,1})
+% fprintf('%-*s%-s\n', s1+s2+3+s4+prec+2+s*5, R_out{2,2}, R_out{2,6})
+% fprintf('%-*s%*s%*s%*s%s%-*s%*s%*s%*s%*s\n', s1,R_out{3,1}, s2+s,R_out{3,2}, s4+3+s,R_out{3,4}, prec+2+s,R_out{3,5},blanks(2*s), s6,R_out{3,6}, s7,R_out{3,7}, s8+s,R_out{3,8}, s10+3+s,R_out{3,10}, s+prec+2,R_out{3,11})
+% fprintf('%-*s%-*s%*.0f%*.*f%-3s%*.*f%*.*f\n', s1+s2+3+s4+prec+2+s*5,R_out{4,1}, s6,R_out{4,6}, s7,R_out{4,7}, s8+s,prec,R_out{4,8}, R_out{4,9}, s10+s,prec,R_out{4,10}, 2+prec+s,prec,R_out{4,11})
+% for i = 1:OptimOptFit.NVARA
+%     fprintf('%-*s%*.*f%-3s%*.*f%*.*f%s%-*s%*.0f%*.*f%-3s%*.*f%*.*f\n', s1,R_out{4+i,1}, s2+s,prec, R_out{4+i,2}, R_out{4+i,3}, s4+s,prec,R_out{4+i,4}, 2+prec+s,prec,R_out{4+i,5}, blanks(2*s),s6,R_out{4+i,6}, s7,R_out{4+i,7}, s8+s,prec,R_out{4+i,8}, R_out{4+i,9}, s10+s,prec,R_out{4+i,10}, 2+prec+s,prec,R_out{4+i,11})
+% end
+% fprintf('\n%-s\n', R_out{OptimOptFit.NVARA+5,2})
+% fprintf('%-*s%*s%*s%*s\n', s1,R_out{OptimOptFit.NVARA+6,1}, s2+s,R_out{OptimOptFit.NVARA+6,2}, s4+3+s,R_out{OptimOptFit.NVARA+6,4}, prec+2+s,R_out{OptimOptFit.NVARA+6,5})
+% fprintf('%-*s%*.*f%-3s%*.*f%*.*f\n', s1,R_out{OptimOptFit.NVARA+7,1}, s2+s,prec, R_out{OptimOptFit.NVARA+7,2}, R_out{OptimOptFit.NVARA+7,3}, s4+s,prec,R_out{OptimOptFit.NVARA+7,4}, 2+prec+s,prec,R_out{OptimOptFit.NVARA+7,5})
 
