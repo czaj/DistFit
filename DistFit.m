@@ -86,7 +86,16 @@ if dist == 21 && any(isinf(INPUT.bounds(:)))
     INPUT.bounds(isinf(INPUT.bounds)) = max(INPUT.bounds(~isinf(INPUT.bounds(:,2)),2)) * 2;
 end
 
+if ~isfield(INPUT,'WT') | isempty(INPUT.WT)
+     INPUT.WT = ones([size(INPUT.X,1),1]);
+end
 
+if ~isempty(INPUT.WT) && (size(INPUT.WT,1) ~= size(INPUT.X,1))
+    error('Number of weights not consistent with the number of observations')
+end
+if ~isempty(INPUT.WT) && (size(INPUT.WT,2) ~= 1)
+    error('Matrix of weights is not a single column vector')
+end
 
 if ~isfield(INPUT,'X')
     INPUT.X = zeros(size(INPUT.bounds,1),0);
@@ -95,9 +104,10 @@ elseif size(INPUT.X,1) ~= size(INPUT.bounds,1)
 else
     NaN_index = sum(isnan(INPUT.X),2) > 0;
     if sum(NaN_index)>0
-        cprintf(rgb('DarkOrange'), 'WARNING: Skipping %d out of %d observatons with missing values of the explanatory variables \n',sum(NaN_index),size(NaN_index,1))
+        cprintf(rgb('DarkOrange'), 'WARNING: Skipping %d out of %d observatons with missing values of the explanatory variables \n',sum(NaN_index),size(NaN_index,1)) % Ta czêœæ po ró¿owym komentarzu jest potrzebna?
         INPUT.bounds = INPUT.bounds(~NaN_index,:);
         INPUT.X = INPUT.X(~NaN_index,:);
+        INPUT.WT = INPUT.WT(~NaN_index,:);
     end
     if isfield(INPUT,'NamesX') == 0 || isempty(INPUT.NamesX) || length(INPUT.NamesX) ~= size(INPUT.X,2)
         INPUT.NamesX = (1:size(INPUT.X,2))';
@@ -106,16 +116,6 @@ else
     else
         INPUT.NamesX = INPUT.NamesX(:);
     end
-end
-
-if ~isfield(INPUT,'WT') || isempty(INPUT.WT)
-     INPUT.WT = ones([size(INPUT.X,1),1]);
-end
-if ~isempty(INPUT.WT) && (size(INPUT.WT,1) ~= size(INPUT.X))
-    error('Number of weights not consistent with the number of observations')
-end
-if ~isempty(INPUT.WT) && (size(INPUT.WT,2) ~= 1)
-    error('Matrix of weights is not a single column vector')
 end
 
 numDistParam = 1*any(dist == [10,14,31]) + 2*any(dist == [0:2,5,11:13,15,16,18:20,32]) + 3*any(dist == [3,4,17]) + 4*any(dist == [6,21]);
@@ -174,7 +174,7 @@ if ~exist('b0','var') || isempty(b0)
             b0 = [min([bounds_tmp(isfinite(bounds_tmp));0]) max(bounds_tmp(isfinite(bounds_tmp)))];
         case 6 % Johnson SU        
             pd = f_johnson_fit(midpoint);
-            b0 = pd.coef; % gamma delta xi lambda
+            b0 = pd.coef; % gamma, delta, mi, sigma
 % stable
         
 % bounded (0,Inf)        
@@ -212,14 +212,7 @@ if ~exist('b0','var') || isempty(b0)
         case 20 % Rician
             pd = fitdist(midpoint,'Rician','Options',OptimOptFit);
             b0 = pd.ParameterValues; % s, sigma
-%         case 21 % Johnson SB
-%             pd = f_johnson_fit(midpoint);
-%             b0 = [pd.coef Spike*sum(INPUT.bounds(INPUT.bounds(:,1)==INPUT.bounds(:,2),1)==0)/size(INPUT.bounds,1)+(1-Spike)*10]; % gamma delta xi lambda
-%             save tmp1
-%             b0(3) = min(b0(3),min(INPUT.bounds(:))-eps);
-%             if any((INPUT.bounds(:)-b0(3))./b0(4) >= 1)
-%                 b0(4) = 1 ./ (max((INPUT.bounds(:)-b0(3))) + eps);
-%             end
+%        case 21 % Johnson SB
 
     %     case x % Burr
     %         pd = fitdist(midpoint,'Burr','Options',OptimOptFit); % Error - Parto distribution fits better
@@ -307,7 +300,7 @@ else
 end
 
 
-[WTP.beta, WTP.fval, WTP.flag, WTP.out, WTP.grad, WTP.hess] = fminunc(@(b) -sum(LL_DistFit(INPUT.bounds,INPUT.X,dist,INPUT.SpikeTrue,b)), b0, INPUT.OptimOpt);
+[WTP.beta, WTP.fval, WTP.flag, WTP.out, WTP.grad, WTP.hess] = fminunc(@(b) -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT, dist,INPUT.SpikeTrue,b)), b0, INPUT.OptimOpt);
 
 % save tmp1
 % return
@@ -317,16 +310,16 @@ WTP.fval = -WTP.fval;
 if INPUT.HessEstFix == 0
     WTP.ihess = inv(WTP.hess);
 elseif INPUT.HessEstFix == 1
-    WTP.f = LL_DistFit(INPUT.bounds,INPUT.X,dist,INPUT.SpikeTrue,WTP.beta);
-    WTP.jacobian1 = numdiff(@(B) LL_DistFit(INPUT.bounds,INPUT.X,dist,INPUT.SpikeTrue,B),WTP.f,WTP.beta,isequal(INPUT.OptimOpt.FinDiffType,'central'));
+    WTP.f = LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.SpikeTrue,WTP.beta);
+    WTP.jacobian1 = numdiff(@(B) LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.SpikeTrue,B),WTP.f,WTP.beta,isequal(INPUT.OptimOpt.FinDiffType,'central'));
     WTP.hess1 = WTP.jacobian1'*WTP.jacobian1;
     WTP.ihess = inv(WTP.hess1);
 elseif INPUT.HessEstFix == 2
-	WTP.jacobian2 = jacobianest(@(B) LL_DistFit(INPUT.bounds,INPUT.X,dist,INPUT.SpikeTrue,B),WTP.beta);
+	WTP.jacobian2 = jacobianest(@(B) LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.SpikeTrue,B),WTP.beta);
     WTP.hess2 = WTP.jacobian2'*WTP.jacobian2;
     WTP.ihess = inv(WTP.hess2);
 elseif INPUT.HessEstFix == 3
-	WTP.hess3 = hessian(@(B) -sum(LL_DistFit(INPUT.bounds,INPUT.X,dist,INPUT.SpikeTrue,B)),WTP.beta);
+	WTP.hess3 = hessian(@(B) -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.SpikeTrue,B)),WTP.beta);
     WTP.ihess = inv(WTP.hess3);
 end
 
