@@ -1,4 +1,4 @@
-function f = LL_DistFit(bounds, X, dist, SpikeTrue, b0)
+function f = LL_DistFit(bounds, X, weights, dist, SpikeTrue, b0)
 
 % save CDF_WTP_tmp
 % return
@@ -49,8 +49,8 @@ switch dist
         dp(dp==0) = pdf('Normal',bounds_min(dp==0,1),BDist(1)+X(dp==0,:)*BCovDist(1:XCovSize),BDist(2)+X(dp==0,:)*BCovDist(XCovSize+1:XCovSize*2)); % replace 0 cdf difference with pdf at lower absolute bound (if extreme bounds or exact x known)
         p = (1-pSpike).*dp; % scale down to allow for the probability of spike
         p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike(bounds(:,1) <= 0 & 0 <= bounds(:,2)); % add spike probability to observations with 0 in bounds
-        f = log(p);
-    case 1 % Logistic % mu, sigma
+        f = log(p).*weights;
+    case 1 % Logistic % mu, sigma>=0
         dp = cdf('Logistic',bounds(:,2),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2)) - ...
              cdf('Logistic',bounds(:,1),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2));
         [~,I] = min(abs(bounds),[],2); ... 
@@ -58,8 +58,8 @@ switch dist
         dp(dp==0) = pdf('Logistic',bounds_min(dp==0,1),BDist(1)+X(dp==0,:)*BCovDist(1:XCovSize),BDist(2)+X(dp==0,:)*BCovDist(XCovSize+1:XCovSize*2)); 
         p = (1-pSpike).*dp; 
         p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike(bounds(:,1) <= 0 & 0 <= bounds(:,2));
-        f = log(p);
-    case 2 % Extreme Value % mu sigma
+        f = log(p).*weights;
+    case 2 % Extreme Value % mu sigma>0
         dp = cdf('Extreme Value',bounds(:,2),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2)) - ...
              cdf('Extreme Value',bounds(:,1),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2));
         [~,I] = min(abs(bounds),[],2); ... 
@@ -67,8 +67,8 @@ switch dist
         dp(dp==0) = pdf('Extreme Value',bounds_min(dp==0,1),BDist(1)+X(dp==0,:)*BCovDist(1:XCovSize),BDist(2)+X(dp==0,:)*BCovDist(XCovSize+1:XCovSize*2)); 
         p = (1-pSpike).*dp; 
         p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike(bounds(:,1) <= 0 & 0 <= bounds(:,2));
-        f = log(p);
-    case 3 % Generalized Extreme Value % k, sigma, mu 
+        f = log(p).*weights;
+    case 3 % Generalized Extreme Value % k, sigma>0, mu 
         dp = cdf('Generalized Extreme Value',bounds(:,2),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2),BDist(3)+X*BCovDist(XCovSize*2+1:XCovSize*3)) - ...
              cdf('Generalized Extreme Value',bounds(:,1),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2),BDist(3)+X*BCovDist(XCovSize*2+1:XCovSize*3));
         [~,I] = min(abs(bounds),[],2); ... 
@@ -76,7 +76,7 @@ switch dist
         dp(dp==0) = pdf('Generalized Extreme Value',bounds_min(dp==0,1),BDist(1)+X(dp==0,:)*BCovDist(1:XCovSize),BDist(2)+X(dp==0,:)*BCovDist(XCovSize+1:XCovSize*2),BDist(3)+X(dp==0,:)*BCovDist(XCovSize*2+1:XCovSize*3)); 
         p = (1-pSpike).*dp; 
         p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike(bounds(:,1) <= 0 & 0 <= bounds(:,2));
-        f = log(p);
+        f = log(p).*weights;
     case 4 % tLocationScale % mu, sigma>0, nu>0 
         dp = cdf('tLocationScale',bounds(:,2),BDist(1)+X*BCovDist(1:XCovSize),BDist(2).*exp(X*BCovDist(XCovSize+1:XCovSize*2)),BDist(3).*exp(X*BCovDist(XCovSize*2+1:XCovSize*3))) - ...
              cdf('tLocationScale',bounds(:,1),BDist(1)+X*BCovDist(1:XCovSize),BDist(2).*exp(X*BCovDist(XCovSize+1:XCovSize*2)),BDist(3).*exp(X*BCovDist(XCovSize*2+1:XCovSize*3)));
@@ -85,7 +85,7 @@ switch dist
         dp(dp==0) = pdf('tLocationScale',bounds_min(dp==0,1),BDist(1)+X(dp==0,:)*BCovDist(1:XCovSize),BDist(2).*exp(X(dp==0,:)*BCovDist(XCovSize+1:XCovSize*2)),BDist(3).*exp(X(dp==0,:)*BCovDist(XCovSize*2+1:XCovSize*3))); 
         p = (1-pSpike).*dp; 
         p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike(bounds(:,1) <= 0 & 0 <= bounds(:,2));
-        f = log(p);
+        f = log(p).*weights;
     case 5 % Uniform % min, max
 %         save tmp2
 %         return
@@ -96,23 +96,26 @@ switch dist
         dp(dp==0) = pdf('Uniform',bounds_min(dp==0,1),BDist(1)+X(dp==0,:)*BCovDist(1:XCovSize),BDist(2)+X(dp==0,:)*BCovDist(XCovSize+1:XCovSize*2)); 
         p = (1-pSpike).*dp; 
         p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike(bounds(:,1) <= 0 & 0 <= bounds(:,2));
-        f = log(p);
-    case 6 % Johnson SU % gamma delta xi lambda
+        f = log(p).*weights;
+    case 6 % Johnson SU % gamma, delta>0, mi, sigma>0
+        % Skoro s¹ te "covariates" parametrów rozk³adu, to czy zamiast
+        % JohnsonCDF(x,B,type), nie lepiej mieæ JohnsonCDF(x,gamma, delta, mi, sigma,type)?
+        % Jak maj¹c JohnsonCDF(x,B,type), wprowadziæ covariates parametrów?
+        dp = Johnson_CDF(bounds(:,2),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2),BDist(3)+X*BCovDist(XCovSize*2+1:XCovSize*3),BDist(4)+X*BCovDist(XCovSize*3+1:XCovSize*4),'SU') - ...
+             Johnson_CDF(bounds(:,1),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2),BDist(3)+X*BCovDist(XCovSize*2+1:XCovSize*3),BDist(4)+X*BCovDist(XCovSize*3+1:XCovSize*4),'SU');
+        [~,I] = min(abs(bounds),[],2); ... 
+        bounds_min = bounds(sub2ind(size(bounds),(1:size(bounds,1)).',I)); 
+        dp(dp==0) = Johnson_CDF(bounds_min(dp==0,1),BDist(1)+X(dp==0,:)*BCovDist(1:XCovSize),BDist(2)+X(dp==0,:)*BCovDist(XCovSize+1:XCovSize*2),BDist(3)+X(dp==0,:)*BCovDist(XCovSize*2+1:XCovSize*3),BDist(4)+X(dp==0,:)*BCovDist(XCovSize*3+1:XCovSize*4),'SU'); 
+        p = (1-pSpike).*dp; 
+        p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike(bounds(:,1) <= 0 & 0 <= bounds(:,2));
+        f = log(p).*weights;
 %         save tmp1
 %         return
-%         p0 = JohnsonCDF(bounds,b0(1:4),'SB');
-%         ... 
 
-%         p0 = [f_johnson_cdf(bounds(:,1),b0,'SU'),f_johnson_cdf(bounds(:,2),b0,'SU')];        
-%         dp = p0(:,2) - p0(:,1);
-%         dp(dp==0) = f_johnson_pdf(bounds(dp==0,1),b0,'SU');
-%         p = (1-pSpike)*dp;
-%         p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike;
-%         f = log(p);
     % stable
         
 % bounded (0,Inf)
-    case 10 % Exponential % mu
+    case 10 % Exponential % mu>0
         dp = cdf('Exponential',bounds(:,2),BDist(1)+X*BCovDist(1:XCovSize)) - ...
              cdf('Exponential',bounds(:,1),BDist(1)+X*BCovDist(1:XCovSize));
         [~,I] = min(abs(bounds),[],2); ... 
@@ -120,8 +123,8 @@ switch dist
         dp(dp==0) = pdf('Exponential',bounds_min(dp==0,1),BDist(1)+X(dp==0,:)*BCovDist(1:XCovSize)); 
         p = (1-pSpike).*dp; 
         p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike(bounds(:,1) <= 0 & 0 <= bounds(:,2));
-        f = log(p);
-    case 11 % Lognormal % mu, sigma
+        f = log(p).*weights;
+    case 11 % Lognormal % mu, sigma>0
         dp = cdf('Lognormal',bounds(:,2),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2)) - ...
              cdf('Lognormal',bounds(:,1),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2));
         [~,I] = min(abs(bounds),[],2); ... 
@@ -129,8 +132,8 @@ switch dist
         dp(dp==0) = pdf('Lognormal',bounds_min(dp==0,1),BDist(1)+X(dp==0,:)*BCovDist(1:XCovSize),BDist(2)+X(dp==0,:)*BCovDist(XCovSize+1:XCovSize*2)); 
         p = (1-pSpike).*dp; 
         p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike(bounds(:,1) <= 0 & 0 <= bounds(:,2));
-        f = log(p);        
-    case 12 % Loglogistic % mu, sigma
+        f = log(p).*weights;        
+    case 12 % Loglogistic % mu>0, sigma>0
         dp = cdf('Loglogistic',bounds(:,2),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2)) - ...
              cdf('Loglogistic',bounds(:,1),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2));
         [~,I] = min(abs(bounds),[],2); ... 
@@ -138,8 +141,8 @@ switch dist
         dp(dp==0) = pdf('Loglogistic',bounds_min(dp==0,1),BDist(1)+X(dp==0,:)*BCovDist(1:XCovSize),BDist(2)+X(dp==0,:)*BCovDist(XCovSize+1:XCovSize*2)); 
         p = (1-pSpike).*dp; 
         p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike(bounds(:,1) <= 0 & 0 <= bounds(:,2));
-        f = log(p);
-    case 13 % Weibull % A, b0
+        f = log(p).*weights;
+    case 13 % Weibull % A>0, b0>0
         dp = cdf('Weibull',bounds(:,2),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2)) - ...
              cdf('Weibull',bounds(:,1),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2));
         [~,I] = min(abs(bounds),[],2); ... 
@@ -147,8 +150,8 @@ switch dist
         dp(dp==0) = pdf('Weibull',bounds_min(dp==0,1),BDist(1)+X(dp==0,:)*BCovDist(1:XCovSize),BDist(2)+X(dp==0,:)*BCovDist(XCovSize+1:XCovSize*2)); 
         p = (1-pSpike).*dp; 
         p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike(bounds(:,1) <= 0 & 0 <= bounds(:,2));
-        f = log(p);
-    case 14 % Rayleigh % b0
+        f = log(p).*weights;
+    case 14 % Rayleigh % b0>0
         dp = cdf('Rayleigh',bounds(:,2),BDist(1)+X*BCovDist(1:XCovSize)) - ...
              cdf('Rayleigh',bounds(:,1),BDist(1)+X*BCovDist(1:XCovSize));
         [~,I] = min(abs(bounds),[],2); ... 
@@ -156,8 +159,8 @@ switch dist
         dp(dp==0) = pdf('Rayleigh',bounds_min(dp==0,1),BDist(1)+X(dp==0,:)*BCovDist(1:XCovSize)); 
         p = (1-pSpike).*dp; 
         p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike(bounds(:,1) <= 0 & 0 <= bounds(:,2));
-        f = log(p);
-    case 15 % Gamma % a, b
+        f = log(p).*weights;
+    case 15 % Gamma % a>0, b>0
         dp = cdf('Gamma',bounds(:,2),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2)) - ...
              cdf('Gamma',bounds(:,1),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2));
         [~,I] = min(abs(bounds),[],2); ... 
@@ -165,8 +168,8 @@ switch dist
         dp(dp==0) = pdf('Gamma',bounds_min(dp==0,1),BDist(1)+X(dp==0,:)*BCovDist(1:XCovSize),BDist(2)+X(dp==0,:)*BCovDist(XCovSize+1:XCovSize*2)); 
         p = (1-pSpike).*dp; 
         p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike(bounds(:,1) <= 0 & 0 <= bounds(:,2));
-        f = log(p);
-    case 16 % BirnbaumSaunders % beta, gamma
+        f = log(p).*weights;
+    case 16 % BirnbaumSaunders % beta>0, gamma>0
         dp = cdf('BirnbaumSaunders',bounds(:,2),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2)) - ...
              cdf('BirnbaumSaunders',bounds(:,1),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2));
         [~,I] = min(abs(bounds),[],2); ... 
@@ -174,8 +177,8 @@ switch dist
         dp(dp==0) = pdf('BirnbaumSaunders',bounds_min(dp==0,1),BDist(1)+X(dp==0,:)*BCovDist(1:XCovSize),BDist(2)+X(dp==0,:)*BCovDist(XCovSize+1:XCovSize*2)); 
         p = (1-pSpike).*dp; 
         p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike(bounds(:,1) <= 0 & 0 <= bounds(:,2));
-        f = log(p);
-    case 17 % Generalized Pareto % k, sigma, theta
+        f = log(p).*weights;
+    case 17 % Generalized Pareto % k, sigma>0, theta
         dp = cdf('Generalized Pareto',bounds(:,2),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2),BDist(3)+X*BCovDist(XCovSize*2+1:XCovSize*3)) - ...
              cdf('Generalized Pareto',bounds(:,1),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2),BDist(3)+X*BCovDist(XCovSize*2+1:XCovSize*3));
         [~,I] = min(abs(bounds),[],2); ... 
@@ -183,8 +186,8 @@ switch dist
         dp(dp==0) = pdf('Generalized Pareto',bounds_min(dp==0,1),BDist(1)+X(dp==0,:)*BCovDist(1:XCovSize),BDist(2)+X(dp==0,:)*BCovDist(XCovSize+1:XCovSize*2),BDist(3)+X(dp==0,:)*BCovDist(XCovSize*2+1:XCovSize*3)); 
         p = (1-pSpike).*dp; 
         p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike(bounds(:,1) <= 0 & 0 <= bounds(:,2));
-        f = log(p);
-    case 18 % InverseGaussian % k, sigma
+        f = log(p).*weights;
+    case 18 % InverseGaussian % k>0, sigma>0
         dp = cdf('InverseGaussian',bounds(:,2),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2)) - ...
              cdf('InverseGaussian',bounds(:,1),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2));
         [~,I] = min(abs(bounds),[],2); ... 
@@ -192,8 +195,8 @@ switch dist
         dp(dp==0) = pdf('InverseGaussian',bounds_min(dp==0,1),BDist(1)+X(dp==0,:)*BCovDist(1:XCovSize),BDist(2)+X(dp==0,:)*BCovDist(XCovSize+1:XCovSize*2)); 
         p = (1-pSpike).*dp; 
         p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike(bounds(:,1) <= 0 & 0 <= bounds(:,2));
-        f = log(p);
-    case 19 % Nakagami % mu, omega
+        f = log(p).*weights;
+    case 19 % Nakagami % mu>=0.5, omega>0
         dp = cdf('Nakagami',bounds(:,2),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2)) - ...
              cdf('Nakagami',bounds(:,1),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2));
         [~,I] = min(abs(bounds),[],2); ... 
@@ -201,8 +204,8 @@ switch dist
         dp(dp==0) = pdf('Nakagami',bounds_min(dp==0,1),BDist(1)+X(dp==0,:)*BCovDist(1:XCovSize),BDist(2)+X(dp==0,:)*BCovDist(XCovSize+1:XCovSize*2)); 
         p = (1-pSpike).*dp; 
         p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike(bounds(:,1) <= 0 & 0 <= bounds(:,2));
-        f = log(p);
-    case 20 % Rician % s, sigma
+        f = log(p).*weights;
+    case 20 % Rician % s>=0, sigma>0
         dp = cdf('Rician',bounds(:,2),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2)) - ...
              cdf('Rician',bounds(:,1),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2));
         [~,I] = min(abs(bounds),[],2); ... 
@@ -210,13 +213,17 @@ switch dist
         dp(dp==0) = pdf('Rician',bounds_min(dp==0,1),BDist(1)+X(dp==0,:)*BCovDist(1:XCovSize),BDist(2)+X(dp==0,:)*BCovDist(XCovSize+1:XCovSize*2)); 
         p = (1-pSpike).*dp; 
         p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike(bounds(:,1) <= 0 & 0 <= bounds(:,2));
-        f = log(p);
-%     case 21 % Johnson SB % gamma delta xi lambda 
-%         save tmp2
-%         p0 = [f_johnson_cdf(bounds(:,1),b0,'SB'),f_johnson_cdf(bounds(:,2),b0,'SB')];        
-%         p = normcdf(b0(5))*(p0(:,2) - p0(:,1))+(1-normcdf(b0(5)));
-%         p(p==0) = f_johnson_pdf(bounds(p==0,1),b0,'SB');
-%         f = log(p);
+        f = log(p).*weights;
+     case 21 % Johnson SB % gamma, delta>0, mi, sigma>0
+        % Jak maj¹c JohnsonCDF(x,B,type), wprowadziæ covariates parametrów?
+        dp = Johnson_CDF(bounds(:,2),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2),BDist(3)+X*BCovDist(XCovSize*2+1:XCovSize*3),BDist(4)+X*BCovDist(XCovSize*3+1:XCovSize*4),'SB') - ...
+             Johnson_CDF(bounds(:,1),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2),BDist(3)+X*BCovDist(XCovSize*2+1:XCovSize*3),BDist(4)+X*BCovDist(XCovSize*3+1:XCovSize*4),'SB');
+        [~,I] = min(abs(bounds),[],2); ... 
+        bounds_min = bounds(sub2ind(size(bounds),(1:size(bounds,1)).',I)); 
+        dp(dp==0) = Johnson_CDF(bounds_min(dp==0,1),BDist(1)+X(dp==0,:)*BCovDist(1:XCovSize),BDist(2)+X(dp==0,:)*BCovDist(XCovSize+1:XCovSize*2),BDist(3)+X(dp==0,:)*BCovDist(XCovSize*2+1:XCovSize*3),BDist(4)+X(dp==0,:)*BCovDist(XCovSize*3+1:XCovSize*4),'SB'); 
+        p = (1-pSpike).*dp; 
+        p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike(bounds(:,1) <= 0 & 0 <= bounds(:,2));
+        f = log(p).*weights;
         %     case x % Burr % Error - Parto distribution fits better
         %           p = cdf('Burr',bounds,b0(1),b0(2),b0(3));        
         %           f = RealMin*log(max(eps,p(:,2) - p(:,1))) + ~RealMin*log(p(:,2) - p(:,1));
@@ -226,7 +233,7 @@ switch dist
         % %         p =
         
  % discrete
-    case 31 % Poisson % lambda
+    case 31 % Poisson % lambda>0
         dp = cdf('Poisson',bounds(:,2),BDist(1)+X*BCovDist(1:XCovSize)) - ...
              cdf('Poisson',bounds(:,1),BDist(1)+X*BCovDist(1:XCovSize));
         [~,I] = min(abs(bounds),[],2); ... 
@@ -234,8 +241,8 @@ switch dist
         dp(dp==0) = pdf('Poisson',bounds_min(dp==0,1),BDist(1)+X(dp==0,:)*BCovDist(1:XCovSize)); 
         p = (1-pSpike).*dp; 
         p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike(bounds(:,1) <= 0 & 0 <= bounds(:,2));
-        f = log(p);
-    case 32 % Negative Binomial % R, P
+        f = log(p).*weights;
+    case 32 % Negative Binomial % R>0 and R is an integer, 0<P<1
         dp = cdf('Negative Binomial',bounds(:,2),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2)) - ...
              cdf('Negative Binomial',bounds(:,1),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2));
         [~,I] = min(abs(bounds),[],2); ... 
@@ -243,7 +250,7 @@ switch dist
         dp(dp==0) = pdf('Negative Binomial',bounds_min(dp==0,1),BDist(1)+X(dp==0,:)*BCovDist(1:XCovSize),BDist(2)+X(dp==0,:)*BCovDist(XCovSize+1:XCovSize*2)); 
         p = (1-pSpike).*dp; 
         p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike(bounds(:,1) <= 0 & 0 <= bounds(:,2));
-        f = log(p);
+        f = log(p).*weights;
 end
 
 end
