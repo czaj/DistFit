@@ -18,8 +18,8 @@ if SpikeTrue
         BCovSpike = b0(numDistParam*(1+XCovSize)+1+1:(numDistParam+1)*(1+XCovSize));
     else % Spike only
         BpSpike = b0(numDistParam+1);
-        BCovDist = zeros(numDistParam*XCovSize,0); % []
-        BCovSpike = zeros(XCovSize,0); % []
+        BCovDist = zeros(numDistParam*XCovSize,1); % []
+        BCovSpike = zeros(XCovSize,1); % []
     end
     pSpike = normcdf(BpSpike+X*BCovSpike);
 else 
@@ -29,17 +29,16 @@ else
 %         BCovSpike = zeros(XCovSize,0); % []
     else % baseline distribution only
 %         BpSpike = zeros(1,0); % []
-        BCovDist = zeros(numDistParam*XCovSize,0); % []
+        BCovDist = zeros(numDistParam*XCovSize,1); % []
 %         BCovSpike = zeros(XCovSize,0); % []
     end
-    pSpike = 0;
+    pSpike = zeros(size(bounds,1),1);
 end
-
 
 switch dist
     
 % unbounded 
-    case 0 % Normal % mu, sigma
+    case 0 % Normal % mu, sigma>0
 %         p0 = cdf('Normal',bounds,BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2));
         dp = cdf('Normal',bounds(:,2),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2)) - ...
              cdf('Normal',bounds(:,1),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2));
@@ -59,7 +58,7 @@ switch dist
         p = (1-pSpike).*dp; 
         p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike(bounds(:,1) <= 0 & 0 <= bounds(:,2));
         f = log(p).*weights;
-    case 2 % Extreme Value % mu sigma>0
+    case 2 % Extreme Value % mu, sigma>0
         dp = cdf('Extreme Value',bounds(:,2),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2)) - ...
              cdf('Extreme Value',bounds(:,1),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2));
         [~,I] = min(abs(bounds),[],2); ... 
@@ -98,14 +97,15 @@ switch dist
         p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike(bounds(:,1) <= 0 & 0 <= bounds(:,2));
         f = log(p).*weights;
     case 6 % Johnson SU % gamma, delta>0, mi, sigma>0
+%         save tmp1
         % Skoro s¹ te "covariates" parametrów rozk³adu, to czy zamiast
         % JohnsonCDF(x,B,type), nie lepiej mieæ JohnsonCDF(x,gamma, delta, mi, sigma,type)?
         % Jak maj¹c JohnsonCDF(x,B,type), wprowadziæ covariates parametrów?
-        dp = Johnson_CDF(bounds(:,2),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2),BDist(3)+X*BCovDist(XCovSize*2+1:XCovSize*3),BDist(4)+X*BCovDist(XCovSize*3+1:XCovSize*4),'SU') - ...
-             Johnson_CDF(bounds(:,1),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2),BDist(3)+X*BCovDist(XCovSize*2+1:XCovSize*3),BDist(4)+X*BCovDist(XCovSize*3+1:XCovSize*4),'SU');
+        dp = JohnsonCDF(bounds(:,2),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2),BDist(3)+X*BCovDist(XCovSize*2+1:XCovSize*3),BDist(4)+X*BCovDist(XCovSize*3+1:XCovSize*4),'SU') - ...
+             JohnsonCDF(bounds(:,1),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2),BDist(3)+X*BCovDist(XCovSize*2+1:XCovSize*3),BDist(4)+X*BCovDist(XCovSize*3+1:XCovSize*4),'SU');
         [~,I] = min(abs(bounds),[],2); ... 
         bounds_min = bounds(sub2ind(size(bounds),(1:size(bounds,1)).',I)); 
-        dp(dp==0) = Johnson_CDF(bounds_min(dp==0,1),BDist(1)+X(dp==0,:)*BCovDist(1:XCovSize),BDist(2)+X(dp==0,:)*BCovDist(XCovSize+1:XCovSize*2),BDist(3)+X(dp==0,:)*BCovDist(XCovSize*2+1:XCovSize*3),BDist(4)+X(dp==0,:)*BCovDist(XCovSize*3+1:XCovSize*4),'SU'); 
+        dp(dp==0) = JohnsonPDF(bounds_min(dp==0,1),BDist(1)+X(dp==0,:)*BCovDist(1:XCovSize),BDist(2)+X(dp==0,:)*BCovDist(XCovSize+1:XCovSize*2),BDist(3)+X(dp==0,:)*BCovDist(XCovSize*2+1:XCovSize*3),BDist(4)+X(dp==0,:)*BCovDist(XCovSize*3+1:XCovSize*4),'SU'); 
         p = (1-pSpike).*dp; 
         p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike(bounds(:,1) <= 0 & 0 <= bounds(:,2));
         f = log(p).*weights;
