@@ -220,15 +220,7 @@ switch dist
         p = (1-pSpike).*dp; 
         p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike(bounds(:,1) <= 0 & 0 <= bounds(:,2));
         f = log(p).*weights;
-    case 22 % Johnson SL % gamma, delta>0, mi, sigma>0
-        dp = JohnsonCDF(bounds(:,2),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2),BDist(3)+X*BCovDist(XCovSize*2+1:XCovSize*3),BDist(4)+X*BCovDist(XCovSize*3+1:XCovSize*4),'SL') - ...
-             JohnsonCDF(bounds(:,1),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2),BDist(3)+X*BCovDist(XCovSize*2+1:XCovSize*3),BDist(4)+X*BCovDist(XCovSize*3+1:XCovSize*4),'SL');
-        [~,I] = min(abs(bounds),[],2); ... 
-        bounds_min = bounds(sub2ind(size(bounds),(1:size(bounds,1)).',I)); 
-        dp(dp==0) = JohnsonPDF(bounds_min(dp==0,1),BDist(1)+X(dp==0,:)*BCovDist(1:XCovSize),BDist(2)+X(dp==0,:)*BCovDist(XCovSize+1:XCovSize*2),BDist(3)+X(dp==0,:)*BCovDist(XCovSize*2+1:XCovSize*3),BDist(4)+X(dp==0,:)*BCovDist(XCovSize*3+1:XCovSize*4),'SL'); 
-        p = (1-pSpike).*dp; 
-        p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike(bounds(:,1) <= 0 & 0 <= bounds(:,2));
-        f = log(p).*weights;
+    case 22 % Joh
         %     case x % Burr % Error - Parto distribution fits better
         %           p = cdf('Burr',bounds,b0(1),b0(2),b0(3));        
         %           f = RealMin*log(max(eps,p(:,2) - p(:,1))) + ~RealMin*log(p(:,2) - p(:,1));

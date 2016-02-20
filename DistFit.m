@@ -93,7 +93,7 @@ elseif (size(INPUT.WT,1) ~= size(INPUT.bounds,1))
 elseif size(INPUT.WT,2) ~= 1
     error('Matrix of weights is not a single column vector')
 else
-    disp('Observations are weighted.')
+    disp('Observations are weighted')
 end
 
 if ~isfield(INPUT,'X')
