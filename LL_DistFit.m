@@ -5,7 +5,7 @@ function f = LL_DistFit(bounds, X, weights, dist, SpikeTrue, b0)
 
 b0 = b0(:);
 
-numDistParam = 1*any(dist == [10,14,31]) + 2*any(dist == [0:2,5,11:13,15,16,18:20,32]) + 3*any(dist == [3,4,17]) + 4*any(dist == [6,21]);
+numDistParam = 1*any(dist == [10,14,31]) + 2*any(dist == [0:2,5,11:13,15,16,18:20,32]) + 3*any(dist == [3,4,17]) + 4*any(dist == [6,21,22]);
 
 XCovSize = size(X,2);
 % XCovTrue = size(X,2)>0;

@@ -126,7 +126,7 @@ if sum(INPUT.WT) ~= size(INPUT.bounds,1)
     INPUT.WT = INPUT.WT - mean(INPUT.WT) + 1;
 end
 
-numDistParam = 1*any(dist == [10,14,31]) + 2*any(dist == [0:2,5,11:13,15,16,18:20,32]) + 3*any(dist == [3,4,17]) + 4*any(dist == [6,21]);
+numDistParam = 1*any(dist == [10,14,31]) + 2*any(dist == [0:2,5,11:13,15,16,18:20,32]) + 3*any(dist == [3,4,17]) + 4*any(dist == [6,21,22]);
 numX = size(INPUT.X,2);
 numB = (numDistParam + INPUT.SpikeTrue) * (1 + numX);
 
@@ -221,7 +221,10 @@ if ~exist('b0','var') || isempty(b0)
         case 20 % Rician
             pd = fitdist(midpoint,'Rician','Options',OptimOptFit);
             b0 = pd.ParameterValues; % s, sigma
-%        case 21 % Johnson SB
+        case 21 % Johnson SB
+            b0 = [1,1,1,1];
+        case 22 % Johnson SL
+            b0 = [1,1,1,1];
 
     %     case x % Burr
     %         pd = fitdist(midpoint,'Burr','Options',OptimOptFit); % Error - Parto distribution fits better
@@ -279,6 +282,7 @@ Distributions = {...
     19  'Nakagami'; ...
     20  'Rician'; ...
     21  'Johnson_SB'; ...
+    22  'Johnson_SL'; ...
 
     31  'Poisson'; ...
     32  'Negative_Binomial'};
@@ -455,6 +459,15 @@ switch dist
         R_out(3,1:5) = head;
         R_out(3,6:9) = head(2:5);     
     case 21 % Johnson SB % gamma delta xi lambda 
+        R_out(2,2) = {'gamma'};
+        R_out(2,6) = {'delta'};
+        R_out(2,10) = {'xi'};
+        R_out(2,14) = {'lambda'};
+        R_out(3,1:5) = head;
+        R_out(3,6:9) = head(2:5);  
+        R_out(3,10:13) = head(2:5);  
+        R_out(3,14:17) = head(2:5);  
+    case 22 % Johnson SL % gamma delta xi lambda 
         R_out(2,2) = {'gamma'};
         R_out(2,6) = {'delta'};
         R_out(2,10) = {'xi'};
