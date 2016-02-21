@@ -38,14 +38,14 @@ switch type
             cprintf(rgb('DarkOrange'), 'Semi-bounded SL at 0')
         end
         p = zeros(size(x));
-        p(x > mi) = (exp(-0.5.*(gamma+delta.*arcsinh((x(x > mi)-mi)./sigma))^2)*delta)./((2*pi)^(0.5).*(x(x > mi)-mi));
+        p(x > mi) = (exp(-0.5.*(gamma(x > mi)+delta(x > mi).*arcsinh((x(x > mi)-mi(x > mi))./sigma(x > mi))).^2).*delta(x > mi))./((2*pi)^(0.5).*(x(x > mi)-mi(x > mi)));
         p(x <= mi) = 0; % Czy to siê zgadza? 
 	case 'SB' % bounded
         if mi == 0
             cprintf(rgb('DarkOrange'), 'Semi-bounded SB at 0')
         end
         p = zeros(size(x));
-        p((x > mi) & (x < mi + sigma)) = (exp(-0.5.*(gamma+delta.*log((x((x > mi) & (x < mi + sigma))-mi)./(-x((x > mi) & (x < mi + sigma))+mi+sigma)))^2).*delta.*sigma)./((2*pi)^(0.5).*(x((x > mi) & (x < mi + sigma))-mi).*(-x((x > mi) & (x < mi + sigma))+mi+sigma));
+        p((x > mi) & (x < mi + sigma)) = (exp(-0.5.*(gamma((x > mi) & (x < mi + sigma))+delta((x > mi) & (x < mi + sigma)).*log((x((x > mi) & (x < mi + sigma))-mi((x > mi) & (x < mi + sigma)))./(-x((x > mi) & (x < mi + sigma))+mi((x > mi) & (x < mi + sigma))+sigma((x > mi) & (x < mi + sigma))))).^2).*delta((x > mi) & (x < mi + sigma)).*sigma((x > mi) & (x < mi + sigma)))./((2*pi)^(0.5).*(x((x > mi) & (x < mi + sigma))-mi((x > mi) & (x < mi + sigma))).*(-x((x > mi) & (x < mi + sigma))+mi((x > mi) & (x < mi + sigma))+sigma((x > mi) & (x < mi + sigma))));
         p((x <= mi) | (x >= mi + sigma)) = 0; % Czy to siê zgadza? 
    otherwise
       error('Unknown distribution type');

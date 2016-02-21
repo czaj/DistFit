@@ -24,7 +24,7 @@ end
 if ~exist('dist','var') || isempty(dist)
     disp('Assuming normally distributed WTP')
     dist = 0;
-elseif ~any(dist == [0:6,10:21,31:32])
+elseif ~any(dist == [0:6,10:22,31:32])
 	error('Unsupported distribution type')
 end
 
@@ -182,8 +182,8 @@ if ~exist('b0','var') || isempty(b0)
             b0 = [min([bounds_tmp(isfinite(bounds_tmp));0]) max(bounds_tmp(isfinite(bounds_tmp)))];
         case 6 % Johnson SU        
 %             pd = f_johnson_fit(midpoint);
-%             b0 = pd.coef; % gamma, delta, mi, sigma
-            b0 = [1,1,1,1];
+%             b0 = pd.coef; 
+            b0 = [0,1,mean(midpoint),std(midpoint)/1.78]; % gamma, delta, mi, sigma
 % stable
         
 % bounded (0,Inf)        
@@ -221,10 +221,13 @@ if ~exist('b0','var') || isempty(b0)
         case 20 % Rician
             pd = fitdist(midpoint,'Rician','Options',OptimOptFit);
             b0 = pd.ParameterValues; % s, sigma
-        case 21 % Johnson SB
-            b0 = [1,1,1,1];
+        case 21 % Johnson SB % gamma, delta, mi, sigma
+           % b0 = [skewness(midpoint,0),kurtosis(midpoint,0),mean(midpoint),std(midpoint)];
+         %   pd = f_johnson_fit(midpoint);
+         %   b0 = pd.coef; 
+            b0 = [0,1,mean(midpoint),std(midpoint)/1.78]; % gamma, delta, mi, sigma
         case 22 % Johnson SL
-            b0 = [1,1,1,1];
+            b0 = [1,1,1,1]; % gamma, delta, mi, sigma
 
     %     case x % Burr
     %         pd = fitdist(midpoint,'Burr','Options',OptimOptFit); % Error - Parto distribution fits better

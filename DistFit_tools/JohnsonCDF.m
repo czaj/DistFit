@@ -41,8 +41,8 @@ switch type
             cprintf(rgb('DarkOrange'), 'Semi-bounded SL at 0')
         end
         p = zeros(size(x));
-        p((x > mi) & (x <= mi+sigma)) = 0.5.*erfc(-(gamma+delta.*log((x((x > mi) & (x <= mi+sigma))-mi)./sigma))./(2^0.5));
-        p(x > mi + sigma) = 0.5.*(1+erf((gamma+delta.*log((x(x > mi + sigma)-mi)./sigma))./(2^0.5)));
+        p((x > mi) & (x <= mi+sigma)) = 0.5.*erfc(-(gamma((x > mi) & (x <= mi+sigma))+delta((x > mi) & (x <= mi+sigma)).*log((x((x > mi) & (x <= mi+sigma))-mi((x > mi) & (x <= mi+sigma)))./sigma((x > mi) & (x <= mi+sigma))))./(2^0.5));
+        p(x > mi + sigma) = 0.5.*(1+erf((gamma(x > mi + sigma)+delta(x > mi + sigma).*log((x(x > mi + sigma)-mi(x > mi + sigma))./sigma(x > mi + sigma)))./(2^0.5)));
         p(x <= mi) = 0; % Co dla x <=  mi? Czy wg Wolframa to 0? Bo to wg mnie jest
         % niejasne, tam jest s³owo "true" zamiast przedzia³u.
 	case 'SB' % bounded
@@ -50,8 +50,8 @@ switch type
             cprintf(rgb('DarkOrange'), 'Semi-bounded SB at 0')
         end
         p = zeros(size(x));
-        p((x > mi) & (x < mi+sigma/2)) = 0.5.*erfc(-(gamma+delta.*log((x((x > mi) & (x < mi+sigma/2))-mi)./(-x((x > mi) & (x < mi+sigma/2))+mi+sigma)))./(2^0.5));
-        p((x >= mi + sigma/2) & (x < mi + sigma)) = 0.5.*(1+erf((gamma+delta.*log((x((x >= mi + sigma/2) & (x < mi + sigma))-mi)./(-x((x >= mi + sigma/2) & (x < mi + sigma))+mi+sigma)))./(2^0.5)));
+        p((x > mi) & (x < mi+sigma/2)) = 0.5.*erfc(-(gamma((x > mi) & (x < mi+sigma/2))+delta((x > mi) & (x < mi+sigma/2)).*log((x((x > mi) & (x < mi+sigma/2))-mi((x > mi) & (x < mi+sigma/2)))./(-x((x > mi) & (x < mi+sigma/2))+mi((x > mi) & (x < mi+sigma/2))+sigma((x > mi) & (x < mi+sigma/2)))))./(2^0.5));
+        p((x >= mi + sigma/2) & (x < mi + sigma)) = 0.5.*(1+erf((gamma((x >= mi + sigma/2) & (x < mi + sigma))+delta((x >= mi + sigma/2) & (x < mi + sigma)).*log((x((x >= mi + sigma/2) & (x < mi + sigma))-mi((x >= mi + sigma/2) & (x < mi + sigma)))./(-x((x >= mi + sigma/2) & (x < mi + sigma))+mi((x >= mi + sigma/2) & (x < mi + sigma))+sigma((x >= mi + sigma/2) & (x < mi + sigma)))))./(2^0.5)));
         p(x >=  mi + sigma) = 1;    
         p(x <= mi) = 0; % Zgadza siê?
    otherwise
