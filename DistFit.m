@@ -16,7 +16,7 @@ elseif nargin == 3
     b0 = varargin{2};
 end
 
-% save DistFit_tmp
+save DistFit_tmp
 % return
 
 %% distribution type:
@@ -56,18 +56,28 @@ elseif any(INPUT.bounds(:,1) > INPUT.bounds(:,2))
     error('Some lower bounds are greater than upper bounds')
 elseif any(dist == [10:21,31:32]) && any(INPUT.bounds(:,2) < 0)
     error('Negative upper bounds not consistent with the distribution type')
-elseif any(dist == [10:21,31:32]) && any(INPUT.bounds(:,1) < 0)
+elseif any(dist == [10:20,31:32]) && any(INPUT.bounds(:,1) < 0)
     cprintf(rgb('DarkOrange'), 'WARNING: Negative lower bounds not consistent with the distribution type - censoring to 0 \n')
     INPUT.bounds(INPUT.bounds(:,1)<0,1) = 0;
     INPUT.bounds(:,2) = max(INPUT.bounds,[],2);
 elseif dist == 5 && any(INPUT.bounds(:,1) == -Inf)
-    cprintf(rgb('DarkOrange'), 'WARNING: -Inf lower bounds not consistent with uniform distribution - censoring to minimum bound \n')
+    cprintf(rgb('DarkOrange'), 'WARNING: -Inf lower bounds not consistent with uniform distribution - censoring to minimum finite bound \n')
     INPUT.bounds(INPUT.bounds(:,1)==-Inf,1) = min([INPUT.bounds(isfinite(INPUT.bounds));0]);
     INPUT.bounds(:,2) = max(INPUT.bounds,[],2);
 end
 if any(dist == 11:20) && any(INPUT.bounds(:,2) == 0)
     cprintf(rgb('DarkOrange'), 'WARNING: 0 upper bounds not consistent with lognormal distribution - censoring to eps \n')
     INPUT.bounds(INPUT.bounds(:,2)==0,2) = eps;
+end
+if any(dist == [21:22]) && any(INPUT.bounds(:,1) == -Inf)
+    cprintf(rgb('DarkOrange'), 'WARNING: -Inf lower bounds not consistent with Johnson SB / SL distribution - censoring to minimum finite bound or 0 \n')
+    INPUT.bounds(INPUT.bounds(:,1)==-Inf,1) = min([INPUT.bounds(isfinite(INPUT.bounds));0]);
+    INPUT.bounds(:,2) = max(INPUT.bounds,[],2);
+end
+if dist == 21 && any(INPUT.bounds(:,2) == Inf)
+    cprintf(rgb('DarkOrange'), 'WARNING: Inf upper bounds not consistent with Johnson SB distribution - censoring to maximum finite bound \n')
+    INPUT.bounds(INPUT.bounds(:,2)==Inf,2) = max(INPUT.bounds(isfinite(INPUT.bounds)));
+    INPUT.bounds(:,1) = min(INPUT.bounds,[],2);
 end
 
 % perhaps we will need to check if bounds == 0, but let's leave if for later, when the spike option is added. 
@@ -77,14 +87,14 @@ if any(dist == 31:32) && isinteger(INPUT.bounds(isfinite(INPUT.bounds)))
 end
 
 % this is temporary:
-if dist == 21 && any(INPUT.bounds(:) == 0)
-    cprintf(rgb('DarkOrange'), 'WARNING: Bounds = 0 not consistent with the distribution type - censoring to eps \n')
-    INPUT.bounds(INPUT.bounds==0) = eps;    
-end
-if dist == 21 && any(isinf(INPUT.bounds(:)))
-    cprintf(rgb('DarkOrange'), 'WARNING: Bounds = Inf not consistent with the distribution type - censoring to max bound * 2 \n')
-    INPUT.bounds(isinf(INPUT.bounds)) = max(INPUT.bounds(~isinf(INPUT.bounds(:,2)),2)) * 2;
-end
+% if dist == 21 && any(INPUT.bounds(:) == 0)
+%     cprintf(rgb('DarkOrange'), 'WARNING: Bounds = 0 not consistent with the distribution type - censoring to eps \n')
+%     INPUT.bounds(INPUT.bounds==0) = eps;    
+% end
+% if dist == 21 && any(isinf(INPUT.bounds(:)))
+%     cprintf(rgb('DarkOrange'), 'WARNING: Bounds = Inf not consistent with the distribution type - censoring to max bound\n')
+%     INPUT.bounds(isinf(INPUT.bounds)) = max(INPUT.bounds(~isinf(INPUT.bounds(:,2)),2));
+% end
 
 if ~isfield(INPUT,'WT') || isempty(INPUT.WT)
      INPUT.WT = ones(size(INPUT.bounds,1),1);
@@ -126,7 +136,7 @@ if sum(INPUT.WT) ~= size(INPUT.bounds,1)
     INPUT.WT = INPUT.WT - mean(INPUT.WT) + 1;
 end
 
-numDistParam = 1*any(dist == [10,14,31]) + 2*any(dist == [0:2,5,11:13,15,16,18:20,32]) + 3*any(dist == [3,4,17]) + 4*any(dist == [6,21,22]);
+numDistParam = 1*any(dist == [10,14,31]) + 2*any(dist == [0:2,5,11:13,15,16,18:21,32]) + 3*any(dist == [3,4,17,22]) + 4*any(dist == [6]);
 numX = size(INPUT.X,2);
 numB = (numDistParam + INPUT.SpikeTrue) * (1 + numX);
 
@@ -225,9 +235,10 @@ if ~exist('b0','var') || isempty(b0)
            % b0 = [skewness(midpoint,0),kurtosis(midpoint,0),mean(midpoint),std(midpoint)];
          %   pd = f_johnson_fit(midpoint);
          %   b0 = pd.coef; 
-            b0 = [0,1,mean(midpoint),std(midpoint)/1.78]; % gamma, delta, mi, sigma
+            b0 = [0,1]; % gamma, delta, mi, sigma
+%             ,min(INPUT.bounds(:)),max(INPUT.bounds(:)) - min(INPUT.bounds(:))
         case 22 % Johnson SL
-            b0 = [1,1,1,1]; % gamma, delta, mi, sigma
+            b0 = [1,1,1]; % gamma, delta, mi, sigma
 
     %     case x % Burr
     %         pd = fitdist(midpoint,'Burr','Options',OptimOptFit); % Error - Parto distribution fits better
@@ -322,7 +333,7 @@ end
 %% generate output
 
 
-% save tmpout1
+save tmpout1
 
 WTP.beta = WTP.beta(:);
 WTP.fval = -WTP.fval;

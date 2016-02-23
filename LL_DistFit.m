@@ -1,11 +1,11 @@
 function f = LL_DistFit(bounds, X, weights, dist, SpikeTrue, b0)
 
-% save CDF_WTP_tmp
+save CDF_WTP_tmp
 % return
 
 b0 = b0(:);
 
-numDistParam = 1*any(dist == [10,14,31]) + 2*any(dist == [0:2,5,11:13,15,16,18:20,32]) + 3*any(dist == [3,4,17]) + 4*any(dist == [6,21,22]);
+numDistParam = 1*any(dist == [10,14,31]) + 2*any(dist == [0:2,5,11:13,15,16,18:21,32]) + 3*any(dist == [3,4,17,22]) + 4*any(dist == 6);
 
 XCovSize = size(X,2);
 % XCovTrue = size(X,2)>0;
@@ -212,20 +212,21 @@ switch dist
         p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike(bounds(:,1) <= 0 & 0 <= bounds(:,2));
         f = log(p).*weights;
      case 21 % Johnson SB % gamma, delta>0, mi, sigma>0
-        dp = JohnsonCDF(bounds(:,2),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2),BDist(3)+X*BCovDist(XCovSize*2+1:XCovSize*3),BDist(4)+X*BCovDist(XCovSize*3+1:XCovSize*4),'SB') - ...
-             JohnsonCDF(bounds(:,1),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2),BDist(3)+X*BCovDist(XCovSize*2+1:XCovSize*3),BDist(4)+X*BCovDist(XCovSize*3+1:XCovSize*4),'SB');
+        dp = JohnsonCDF(bounds(:,2),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2),min(bounds(:))-eps,max(bounds(:))-min(bounds(:))+2*eps,'SB') - ...
+             JohnsonCDF(bounds(:,1),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2),min(bounds(:))-eps,max(bounds(:))-min(bounds(:))+2*eps,'SB');
         [~,I] = min(abs(bounds),[],2); ... 
         bounds_min = bounds(sub2ind(size(bounds),(1:size(bounds,1)).',I)); 
-        dp(dp==0) = JohnsonPDF(bounds_min(dp==0,1),BDist(1)+X(dp==0,:)*BCovDist(1:XCovSize),BDist(2)+X(dp==0,:)*BCovDist(XCovSize+1:XCovSize*2),BDist(3)+X(dp==0,:)*BCovDist(XCovSize*2+1:XCovSize*3),BDist(4)+X(dp==0,:)*BCovDist(XCovSize*3+1:XCovSize*4),'SB'); 
+        dp(dp==0) = JohnsonPDF(bounds_min(dp==0,1),BDist(1)+X(dp==0,:)*BCovDist(1:XCovSize),BDist(2)+X(dp==0,:)*BCovDist(XCovSize+1:XCovSize*2),min(bounds(:))-eps,max(bounds(:))-min(bounds(:))+2*eps,'SB');
         p = (1-pSpike).*dp; 
         p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike(bounds(:,1) <= 0 & 0 <= bounds(:,2));
+        p(p<=0) = eps; % realmin
         f = log(p).*weights;
     case 22 % Johnson SL % gamma, delta>0, mi, sigma>0
-        dp = JohnsonCDF(bounds(:,2),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2),BDist(3)+X*BCovDist(XCovSize*2+1:XCovSize*3),BDist(4)+X*BCovDist(XCovSize*3+1:XCovSize*4),'SL') - ...
-             JohnsonCDF(bounds(:,1),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2),BDist(3)+X*BCovDist(XCovSize*2+1:XCovSize*3),BDist(4)+X*BCovDist(XCovSize*3+1:XCovSize*4),'SL');
+        dp = JohnsonCDF(bounds(:,2),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2),min(bounds(:))-eps,exp(BDist(3)+(X*BCovDist(XCovSize*2+1:XCovSize*3))),'SL') - ...
+             JohnsonCDF(bounds(:,1),BDist(1)+X*BCovDist(1:XCovSize),BDist(2)+X*BCovDist(XCovSize+1:XCovSize*2),min(bounds(:))-eps,exp(BDist(3)+(X*BCovDist(XCovSize*2+1:XCovSize*3))),'SL');
         [~,I] = min(abs(bounds),[],2); ... 
         bounds_min = bounds(sub2ind(size(bounds),(1:size(bounds,1)).',I)); 
-        dp(dp==0) = JohnsonPDF(bounds_min(dp==0,1),BDist(1)+X(dp==0,:)*BCovDist(1:XCovSize),BDist(2)+X(dp==0,:)*BCovDist(XCovSize+1:XCovSize*2),BDist(3)+X(dp==0,:)*BCovDist(XCovSize*2+1:XCovSize*3),BDist(4)+X(dp==0,:)*BCovDist(XCovSize*3+1:XCovSize*4),'SL'); 
+        dp(dp==0) = JohnsonPDF(bounds_min(dp==0,1),BDist(1)+X(dp==0,:)*BCovDist(1:XCovSize),BDist(2)+X(dp==0,:)*BCovDist(XCovSize+1:XCovSize*2),min(bounds(:))-eps,exp(BDist(3)+(X(dp==0,:)*BCovDist(XCovSize*2+1:XCovSize*3))),'SL'); 
         p = (1-pSpike).*dp; 
         p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike(bounds(:,1) <= 0 & 0 <= bounds(:,2));
         f = log(p).*weights;
