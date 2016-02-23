@@ -1,6 +1,6 @@
 function f = LL_DistFit(bounds, X, weights, dist, SpikeTrue, b0)
 
-save CDF_WTP_tmp
+% save CDF_WTP_tmp
 % return
 
 b0 = b0(:);

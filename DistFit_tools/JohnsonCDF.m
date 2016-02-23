@@ -1,6 +1,6 @@
 function p = JohnsonCDF(x, gamma, delta, mi, sigma, type)
 
-save Johnson_tmp
+% save Johnson_tmp
 % return
 
 %         gamma - shape parameter #1

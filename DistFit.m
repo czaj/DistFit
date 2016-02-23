@@ -1,4 +1,4 @@
-function WTP = DistFit(INPUT,varargin)
+function Results = DistFit(INPUT,varargin)
 
 
 %% check no. of inputs
@@ -16,13 +16,13 @@ elseif nargin == 3
     b0 = varargin{2};
 end
 
-save DistFit_tmp
+% save DistFit_tmp
 % return
 
 %% distribution type:
 
 if ~exist('dist','var') || isempty(dist)
-    disp('Assuming normally distributed WTP')
+    disp('Assuming normally distributed Results')
     dist = 0;
 elseif ~any(dist == [0:6,10:22,31:32])
 	error('Unsupported distribution type')
@@ -38,6 +38,16 @@ if ~islogical(INPUT.SpikeTrue)
         error('INPUT.SpikeTrue value not logical')
     end
 end
+if ~isfield(INPUT,'SimStats') || isempty(INPUT.SimStats)
+    INPUT.SimStats = false;
+end
+if ~islogical(INPUT.SimStats)
+    if any(INPUT.SimStats == [0,1])
+        INPUT.SimStats = (INPUT.SimStats==1);
+    else
+        error('INPUT.SimStats value not logical')
+    end
+end
 if ~isfield(INPUT,'HessEstFix') || isempty(INPUT.HessEstFix)
     INPUT.HessEstFix = 3;
 elseif any(INPUT.HessEstFix == 0:3)
@@ -47,9 +57,9 @@ end
 %% check INPUT
 
 if size(INPUT.bounds,2) < 2
-    error('Providing lower and upper bounds for WTP required')
+    error('Providing lower and upper bounds for Results required')
 elseif any(isnan(INPUT.bounds(:)))
-    error('Some of the lower or upper bounds for WTP missing (NaN)')
+    error('Some of the lower or upper bounds for Results missing (NaN)')
 elseif any(sum(isfinite(INPUT.bounds),2)==0) % both bounds infinite
     error('Dataset includes observations with infinite bounds')
 elseif any(INPUT.bounds(:,1) > INPUT.bounds(:,2))
@@ -327,49 +337,49 @@ else
 end
 
 
-[WTP.beta, WTP.fval, WTP.flag, WTP.out, WTP.grad, WTP.hess] = fminunc(@(b) -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT, dist,INPUT.SpikeTrue,b)), b0, INPUT.OptimOpt);
+[Results.beta, Results.fval, Results.flag, Results.out, Results.grad, Results.hess] = fminunc(@(b) -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT, dist,INPUT.SpikeTrue,b)), b0, INPUT.OptimOpt);
 
 
 %% generate output
 
 
-save tmpout1
+% save tmpout1
 
-WTP.beta = WTP.beta(:);
-WTP.fval = -WTP.fval;
+Results.beta = Results.beta(:);
+Results.fval = -Results.fval;
 if INPUT.HessEstFix == 0
-    WTP.ihess = inv(WTP.hess);
+    Results.ihess = inv(Results.hess);
 elseif INPUT.HessEstFix == 1
-    WTP.f = LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.SpikeTrue,WTP.beta);
-    WTP.jacobian1 = numdiff(@(B) LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.SpikeTrue,B),WTP.f,WTP.beta,isequal(INPUT.OptimOpt.FinDiffType,'central'));
-    WTP.hess1 = WTP.jacobian1'*WTP.jacobian1;
-    WTP.ihess = inv(WTP.hess1);
+    Results.f = LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.SpikeTrue,Results.beta);
+    Results.jacobian1 = numdiff(@(B) LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.SpikeTrue,B),Results.f,Results.beta,isequal(INPUT.OptimOpt.FinDiffType,'central'));
+    Results.hess1 = Results.jacobian1'*Results.jacobian1;
+    Results.ihess = inv(Results.hess1);
 elseif INPUT.HessEstFix == 2
-	WTP.jacobian2 = jacobianest(@(B) LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.SpikeTrue,B),WTP.beta);
-    WTP.hess2 = WTP.jacobian2'*WTP.jacobian2;
-    WTP.ihess = inv(WTP.hess2);
+	Results.jacobian2 = jacobianest(@(B) LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.SpikeTrue,B),Results.beta);
+    Results.hess2 = Results.jacobian2'*Results.jacobian2;
+    Results.ihess = inv(Results.hess2);
 elseif INPUT.HessEstFix == 3
-	WTP.hess3 = hessian(@(B) -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.SpikeTrue,B)),WTP.beta);
-    WTP.ihess = inv(WTP.hess3);
+	Results.hess3 = hessian(@(B) -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.SpikeTrue,B)),Results.beta);
+    Results.ihess = inv(Results.hess3);
 end
 
-WTP.std = sqrt(diag(WTP.ihess));
-WTP.std(logical(imag(WTP.std))) = NaN;
-WTP.pv = pv(WTP.beta,WTP.std);
-WTP.stars = cell(size(WTP.beta));
-WTP.stars(WTP.pv < 0.01) = {'***'};
-WTP.stars((WTP.pv >= 0.01) & (WTP.pv < 0.05)) = {'** '};
-WTP.stars((WTP.pv >= 0.05) & (WTP.pv < 0.1)) = {'*  '};
-WTP.stars(WTP.pv >= 0.1) = {'   '};
-WTP.stars(isnan(WTP.pv)) = {'   '};
+Results.std = sqrt(diag(Results.ihess));
+Results.std(logical(imag(Results.std))) = NaN;
+Results.pv = pv(Results.beta,Results.std);
+Results.stars = cell(size(Results.beta));
+Results.stars(Results.pv < 0.01) = {'***'};
+Results.stars((Results.pv >= 0.01) & (Results.pv < 0.05)) = {'** '};
+Results.stars((Results.pv >= 0.05) & (Results.pv < 0.1)) = {'*  '};
+Results.stars(Results.pv >= 0.1) = {'   '};
+Results.stars(isnan(Results.pv)) = {'   '};
 
-betaX = WTP.beta(numDistParam+INPUT.SpikeTrue+1:end);
+betaX = Results.beta(numDistParam+INPUT.SpikeTrue+1:end);
 betaX = num2cell(reshape(betaX,numX,numDistParam+INPUT.SpikeTrue));
-stdX = WTP.std(numDistParam+INPUT.SpikeTrue+1:end);
+stdX = Results.std(numDistParam+INPUT.SpikeTrue+1:end);
 stdX = num2cell(reshape(stdX,numX,numDistParam+INPUT.SpikeTrue));
-pvX = WTP.pv(numDistParam+INPUT.SpikeTrue+1:end);
+pvX = Results.pv(numDistParam+INPUT.SpikeTrue+1:end);
 pvX = num2cell(reshape(pvX,numX,numDistParam+INPUT.SpikeTrue));
-starsX = WTP.stars(numDistParam+INPUT.SpikeTrue+1:end);
+starsX = Results.stars(numDistParam+INPUT.SpikeTrue+1:end);
 starsX = reshape(starsX,numX,numDistParam+INPUT.SpikeTrue);
 
 R_out(1,1) = {['Fitted ',Distributions{[Distributions{:,1}]==dist,2},' distribution parameters']};
@@ -509,13 +519,13 @@ switch dist
 end
    
 for i = 1:numDistParam
-    R_out(4,2+(i-1)*4:2+(i-1)*4+3) = [WTP.beta(i),WTP.stars(i),WTP.std(i),WTP.pv(i)];
+    R_out(4,2+(i-1)*4:2+(i-1)*4+3) = [Results.beta(i),Results.stars(i),Results.std(i),Results.pv(i)];
 end
 
 if INPUT.SpikeTrue
     R_out(2,1+4*numDistParam+1) = {'spike'};
     R_out(3,1+4*numDistParam+1:1+4*numDistParam+4) = head(2:5);
-    R_out(4,1+4*numDistParam+1:1+4*numDistParam+4) = [WTP.beta(numDistParam+1),WTP.stars(numDistParam+1),WTP.std(numDistParam+1),WTP.pv(numDistParam+1)];
+    R_out(4,1+4*numDistParam+1:1+4*numDistParam+4) = [Results.beta(numDistParam+1),Results.stars(numDistParam+1),Results.std(numDistParam+1),Results.pv(numDistParam+1)];
 end
 
 if numX > 0
@@ -534,9 +544,9 @@ end
 
 R_out(numX+6,1) = {'Model characteristics:'};
 R_out(numX+7:numX+10,1) = {'LL';'AIC/n';'n';'k'};
-R_out(numX+7:numX+10,2) = num2cell([WTP.fval; ((2*numB-2*WTP.fval) + 2*numB*(numB+1)/(size(INPUT.bounds,1)-numB-1))/size(INPUT.bounds,1); size(INPUT.bounds,1); numB]);
+R_out(numX+7:numX+10,2) = num2cell([Results.fval; ((2*numB-2*Results.fval) + 2*numB*(numB+1)/(size(INPUT.bounds,1)-numB-1))/size(INPUT.bounds,1); size(INPUT.bounds,1); numB]);
 
-WTP.R_out = R_out;
+Results.R_out = R_out;
 
 
 %% display the results
@@ -648,4 +658,49 @@ fprintf('%-*s% *.*f\n',mCW2(1)+spacing+spacing2,R_out{8+numX,1}, mCW2(2)+precisi
 fprintf('%-*s% *d\n',mCW2(1)+spacing+spacing2,R_out{9+numX,1}, mCW2(2),R_out{9+numX,2})
 fprintf('%-*s% *d\n',mCW2(1)+spacing+spacing2,R_out{10+numX,1}, mCW2(2),R_out{10+numX,2})
 
+
+% save out2
+
+sim1 = 1e3;
+sim2 = 1e3;
+
+if INPUT.SimStats
+    Bi = mvnrnd(Results.beta,Results.ihess,sim1); % draw parameter distributions taking uncertainty (standard errors) into account
+  
+    switch dist
+        case 0 % normal
+            Bmtx(sim1,sim2) = 0;
+            for i = 1:sim1
+                Bmtx(i,:) = random('normal',Bi(i,1),Bi(i,2),[1,sim2]);
+            end
+            % trzeba doda? spike i covariates... 
+        case 1
+%             ... 
+
+    end
+    
+    stats1 = [mean(Bmtx(:)) std(Bmtx(:)) median(Bmtx(:)) quantile((Bmtx(:)),0.025) quantile((Bmtx(:)),0.975)];
+    stats2 = std([mean(Bmtx,2) std(Bmtx,[],2) median(Bmtx,2) quantile(Bmtx,0.025,2) quantile(Bmtx,0.975,2)]);
+    stats31 = quantile([mean(Bmtx,2) std(Bmtx,[],2) median(Bmtx,2) quantile(Bmtx,0.025,2) quantile(Bmtx,0.975,2)],0.025,1);
+    stats32 = quantile([mean(Bmtx,2) std(Bmtx,[],2) median(Bmtx,2) quantile(Bmtx,0.025,2) quantile(Bmtx,0.975,2)],0.975,1);
+    
+    stats = [stats1; stats2; stats31; stats32];
+        
+    stats_out(1,2:6) = {'mean','s.d.','median','q0.025','q0.975'};
+    stats_out(2:5,1) = {'value','s.e.','lower 95% c.i.','upper 95% c.i.'};
+    stats_out(2:5,2:6) = num2cell(stats);
+    
+    Results.stats = stats;
+    Results.stats_out = stats_out;
+    
+    fprintf('\n\n%s\n','Fitted distribution descriptive statistics:')
+
+    [~,mCW3] = CellColumnWidth(stats_out); % width and max width of each column    
+    fprintf('%*s%*s%*s%*s%*s%*s\n',mCW3(1)+spacing2,stats_out{1,1}, mCW3(2)+spacing2+precision,stats_out{1,2}, mCW3(3)+spacing2+precision,stats_out{1,3}, mCW3(4)+spacing2+precision,stats_out{1,4}, mCW3(5)+spacing2+precision,stats_out{1,5}, mCW3(6)+spacing2+precision,stats_out{1,6})    
+    for j = 2:size(stats_out,1)
+        fprintf('%-*s% *.*f% *.*f% *.*f% *.*f% *.*f\n',mCW3(1)+spacing2,stats_out{j,1}, mCW3(2)+spacing2+precision,precision,stats_out{j,2}, mCW3(3)+spacing2+precision,precision,stats_out{j,3}, mCW3(4)+spacing2+precision,precision,stats_out{j,4}, mCW3(5)+spacing2+precision,precision,stats_out{j,5}, mCW3(6)+spacing2+precision,precision,stats_out{j,6})
+    end
+    
+end
+    
 
