@@ -11,8 +11,9 @@ DATA.inc_norm = DATA.INCOME;
 DATA.inc_norm(~isnan(DATA.INCOME)) = (DATA.INCOME(~isnan(DATA.INCOME)) - mean(DATA.INCOME(~isnan(DATA.INCOME)))) ./ std(DATA.INCOME(~isnan(DATA.INCOME)));
 % INPUT.X = [2015-DATA.ROK_UR, DATA.EDU==2, DATA.EDU==3,DATA.EDU==4,DATA.inc_norm];
 % INPUT.NamesX = {'age','edu = 2','edu = 3','edu = 4','income normalized'};
-
-% INPUT.SpikeTrue = 1; % allow for jump density at 0
+% INPUT.X = [2015-DATA.ROK_UR, DATA.inc_norm];
+% INPUT.NamesX = {'age','income normalized'};
+ INPUT.SpikeTrue = 1; % allow for jump density at 0
 
 INPUT.SimStats = 1; % simulate descriptive statistics of the distribution 
 

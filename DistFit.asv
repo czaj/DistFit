@@ -685,6 +685,7 @@ if INPUT.SimStats
                       BiSpike(i,3) = (BiSpike(i,2)<BiSpike(i,1));
                  end
              end
+            % trzeba doda? spike i covariates... 
         case 1
 %             ... 
 
@@ -694,6 +695,7 @@ if INPUT.SimStats
     stats2 = std([mean(Bmtx,2) std(Bmtx,[],2) median(Bmtx,2) quantile(Bmtx,0.025,2) quantile(Bmtx,0.975,2)]);
     stats31 = quantile([mean(Bmtx,2) std(Bmtx,[],2) median(Bmtx,2) quantile(Bmtx,0.025,2) quantile(Bmtx,0.975,2)],0.025,1);
     stats32 = quantile([mean(Bmtx,2) std(Bmtx,[],2) median(Bmtx,2) quantile(Bmtx,0.025,2) quantile(Bmtx,0.975,2)],0.975,1);
+    if INPUT.SpikeTrue
     
     stats = [stats1; stats2; stats31; stats32];
         
