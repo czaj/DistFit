@@ -664,7 +664,7 @@ fprintf('%-*s% *d\n',mCW2(1)+spacing+spacing2,R_out{9+numX,1}, mCW2(2),R_out{9+n
 fprintf('%-*s% *d\n',mCW2(1)+spacing+spacing2,R_out{10+numX,1}, mCW2(2),R_out{10+numX,2})
 
 
-% save out2
+ save out2
 
 
 
@@ -679,7 +679,10 @@ if INPUT.SimStats && err == 0
     if INPUT.SpikeTrue
         if numX > 0 % Spike and X
             meanX = mean(bsxfun(@times,INPUT.X,INPUT.WT));
-            bDist = bDist + repmat(meanX,[1,numDistParam])*Bi(numDistParam+1+1:numDistParam+1 + numDistParam*numX,:);
+            for i = 1:numDistParam
+             %   bDist = bDist + repmat(meanX,[1,numDistParam])*Bi(numDistParam+1+1:numDistParam+1 + numDistParam*numX,:);
+                bDist(i,:) = bDist(i,:) + meanX*Bi(numDistParam+1+1+numX*(i-1):numDistParam+1 + numX*i,:);
+            end
             bSpike = Bi(numDistParam+1,:) + meanX*Bi(numDistParam*(1+numX)+1+1:(numDistParam+1)*(1+numX),:);
             pSpike = normcdf(bSpike);
             ru01 = random('unif',0,1,[1,sim1]);
@@ -693,7 +696,10 @@ if INPUT.SimStats && err == 0
     else
         if numX > 0 % X only
             meanX = mean(bsxfun(@times,INPUT.X,INPUT.WT));
-            bDist = bDist + repmat(meanX,[1,numDistParam])*Bi(numDistParam+1:numDistParam*(1+numX),:);
+            for i = 1:numDistParam
+                bDist(i,:) = bDist(i,:) + meanX*Bi(numDistParam+1+numX*(i-1):numDistParam+numX*i,:);
+            end
+           % bDist = bDist + repmat(meanX,[1,numDistParam])*Bi(numDistParam+1:numDistParam*(1+numX),:);
         else % baseline distribution only
             % bDist only
         end
@@ -704,9 +710,87 @@ if INPUT.SimStats && err == 0
     switch dist
         case 0 % normal
             for i = 1:sim1
-                Bmtx(i,:) = random('normal',bDist(1,i),bDist(2,i),[1,sim2]); % dla innych rozk?adów podasz po prostu kolejne wiersze z BDist, który b?dzie wtedy d?u?szy ni? 2
+                Bmtx(i,:) = random('normal',bDist(1,i),bDist(2,i),[1,sim2]);
             end
-            Bmtx(repmat(tSpike',[1,sim2])) = 0;
+        case 1 % logistic % mu, sigma
+            for i = 1:sim1
+                Bmtx(i,:) = random('logistic',bDist(1,i),bDist(2,i),[1,sim2]);
+            end
+        case 2 % Extreme Value % mu sigma
+            for i = 1:sim1
+                Bmtx(i,:) = random('Extreme Value',bDist(1,i),bDist(2,i),[1,sim2]);
+            end
+        case 3 % Generalized Extreme Value % k, sigma, mu
+            for i = 1:sim1
+                Bmtx(i,:) = random('Generalized Extreme Value',bDist(1,i),bDist(2,i),bDist(3,i),[1,sim2]);
+            end
+        case 4 % tLocationScale % mu, sigma, nu
+            for i = 1:sim1
+                Bmtx(i,:) = random('tlocationscale',bDist(1,i),bDist(2,i),bDist(3,i),[1,sim2]);
+            end
+        case 5 % uniform
+            for i = 1:sim1
+                Bmtx(i,:) = random('unif',bDist(1,i),bDist(2,i),[1,sim2]);
+            end
+        case 6 % Johnson SU % gamma, delta, mi, sigma
+            % na to nawet nie mamy funkcji...
+        case 10 % exponential % mu
+            for i = 1:sim1
+                Bmtx(i,:) = random('exp',bDist(1,i),[1,sim2]);
+            end
+        case 11 % lognormal % mu, sigma
+            for i = 1:sim1
+                Bmtx(i,:) = random('logn',bDist(1,i),bDist(2,i),[1,sim2]);
+            end
+        case 12 % loglogistic % mu, sigma
+            for i = 1:sim1
+                Bmtx(i,:) = random('loglogistic',bDist(1,i),bDist(2,i),[1,sim2]);
+            end
+        case 13 % Weibull % A, B
+            for i = 1:sim1
+                Bmtx(i,:) = random('wbl',bDist(1,i),bDist(2,i),[1,sim2]);
+            end
+        case 14 % Rayleigh % B
+            for i = 1:sim1
+                Bmtx(i,:) = random('rayl',bDist(1,i),[1,sim2]);
+            end
+        case 15 % Gamma % a, b
+            for i = 1:sim1
+                Bmtx(i,:) = random('gam',bDist(1,i),bDist(2,i),[1,sim2]);
+            end
+        case 16 % BirnbaumSaunders % beta, gamma
+            for i = 1:sim1
+                Bmtx(i,:) = random('birnbaumsaunders',bDist(1,i),bDist(2,i),[1,sim2]);
+            end
+        case 17 % Generalized Pareto % k, sigma, theta
+            for i = 1:sim1
+                Bmtx(i,:) = random('gp',bDist(1,i),bDist(2,i),bDist(3,i),[1,sim2]);
+            end
+        case 18 % InverseGaussian % k, sigma
+            for i = 1:sim1
+                Bmtx(i,:) = random('inversegaussian',bDist(1,i),bDist(2,i),[1,sim2]);
+            end
+        case 19 % Nakagami % mu, omega
+            for i = 1:sim1
+                Bmtx(i,:) = random('nakagami',bDist(1,i),bDist(2,i),[1,sim2]);
+            end
+        case 20 % Rician % s, sigma
+            for i = 1:sim1
+                Bmtx(i,:) = random('rician',bDist(1,i),bDist(2,i),[1,sim2]);
+            end
+        case 21 % Johnson SB % gamma, delta, mi, sigma
+            % Brak funkcji
+        case 22 % Johnson SL % gamma, delta, mi, sigma
+            % Brak funkcji
+        case 31 % Poisson % lambda
+            for i = 1:sim1
+                Bmtx(i,:) = random('Poisson',bDist(1,i),[1,sim2]);
+            end
+        case 32 % negative binomial % R, P
+            for i = 1:sim1
+                Bmtx(i,:) = random('nbin',bDist(1,i),bDist(2,i),[1,sim2]);
+            end
+        Bmtx(repmat(tSpike',[1,sim2])) = 0;
     end
     
     stats1 = [mean(Bmtx(:)) std(Bmtx(:)) median(Bmtx(:)) quantile((Bmtx(:)),0.025) quantile((Bmtx(:)),0.975)];

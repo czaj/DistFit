@@ -17,7 +17,7 @@ INPUT.X = [2015-DATA.ROK_UR, DATA.inc_norm];
 INPUT.NamesX = {'age','income normalized'};
 INPUT.SpikeTrue = 1; % allow for jump density at 0
 
-INPUT.HessEstFix = 2;
+INPUT.HessEstFix = 2; % available options: 0 - retained from optimization, 1 - BHHH based, 2 - numerical high-precision Jacobian based, 3 - numerical Hessian based
 INPUT.SimStats = 1; % simulate descriptive statistics of the distribution 
 
 % INPUT.WT = rand(size(INPUT.bounds,1),1); % weight observations
