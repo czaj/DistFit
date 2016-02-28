@@ -28,14 +28,14 @@ elseif ~any(dist == [0:6,10:22,31:32])
     error('Unsupported distribution type')
 end
 
-if ~isfield(INPUT,'SpikeTrue') || isempty(INPUT.SpikeTrue)
-    INPUT.SpikeTrue = false;
+if ~isfield(INPUT,'Spike') || isempty(INPUT.Spike)
+    INPUT.Spike = false;
 end
-if ~islogical(INPUT.SpikeTrue)
-    if any(INPUT.SpikeTrue == [0,1])
-        INPUT.SpikeTrue = (INPUT.SpikeTrue==1);
+if ~islogical(INPUT.Spike)
+    if any(INPUT.Spike == [0,1])
+        INPUT.Spike = (INPUT.Spike==1);
     else
-        error('INPUT.SpikeTrue value not logical')
+        error('INPUT.Spike value not logical')
     end
 end
 if ~isfield(INPUT,'SimStats') || isempty(INPUT.SimStats)
@@ -148,7 +148,7 @@ end
 
 numDistParam = 1*any(dist == [10,14,31]) + 2*any(dist == [0:2,5,11:13,15,16,18:21,32]) + 3*any(dist == [3,4,17,22]) + 4*any(dist == [6]);
 numX = size(INPUT.X,2);
-numB = (numDistParam + INPUT.SpikeTrue) * (1 + numX);
+numB = (numDistParam + INPUT.Spike) * (1 + numX);
 
 
 %% starting values:
@@ -161,7 +161,7 @@ if exist('b0','var') && ~isempty(b0)
     end
 end
 
-if INPUT.SpikeTrue
+if INPUT.Spike
     bounds_tmp = INPUT.bounds(INPUT.bounds(:,1)~=INPUT.bounds(:,2)~=0,:);
     pSpike = norminv(max(1 - size(bounds_tmp,1)./size(INPUT.bounds,1),0.1),0,1);
 else
@@ -267,7 +267,7 @@ if ~exist('b0','var') || isempty(b0)
             b0 = pd.ParameterValues; % R, P
     end
     
-    b0 = [b0 pSpike zeros(1,numX*(numDistParam + INPUT.SpikeTrue))];
+    b0 = [b0 pSpike zeros(1,numX*(numDistParam + INPUT.Spike))];
     
 end
 
@@ -314,7 +314,7 @@ Distributions = {...
 cprintf('Fitting ')
 cprintf('*blue',[Distributions{[Distributions{:,1}]==dist,2},' '])
 cprintf('distribution')
-if INPUT.SpikeTrue
+if INPUT.Spike
     if numX>0
         cprintf(' with ')
         cprintf('*blue','spike ')
@@ -337,7 +337,7 @@ else
 end
 
 
-[Results.beta, Results.fval, Results.flag, Results.out, Results.grad, Results.hess] = fminunc(@(b) -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT, dist,INPUT.SpikeTrue,b)), b0, INPUT.OptimOpt);
+[Results.beta, Results.fval, Results.flag, Results.out, Results.grad, Results.hess] = fminunc(@(b) -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT, dist,INPUT.Spike,b)), b0, INPUT.OptimOpt);
 
 
 %% generate output
@@ -350,16 +350,16 @@ Results.fval = -Results.fval;
 if INPUT.HessEstFix == 0
     Results.ihess = inv(Results.hess);
 elseif INPUT.HessEstFix == 1
-    Results.f = LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.SpikeTrue,Results.beta);
-    Results.jacobian1 = numdiff(@(B) LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.SpikeTrue,B),Results.f,Results.beta,isequal(INPUT.OptimOpt.FinDiffType,'central'));
+    Results.f = LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.Spike,Results.beta);
+    Results.jacobian1 = numdiff(@(B) LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.Spike,B),Results.f,Results.beta,isequal(INPUT.OptimOpt.FinDiffType,'central'));
     Results.hess1 = Results.jacobian1'*Results.jacobian1;
     Results.ihess = inv(Results.hess1);
 elseif INPUT.HessEstFix == 2
-    Results.jacobian2 = jacobianest(@(B) LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.SpikeTrue,B),Results.beta);
+    Results.jacobian2 = jacobianest(@(B) LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.Spike,B),Results.beta);
     Results.hess2 = Results.jacobian2'*Results.jacobian2;
     Results.ihess = inv(Results.hess2);
 elseif INPUT.HessEstFix == 3
-    Results.hess3 = hessian(@(B) -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.SpikeTrue,B)),Results.beta);
+    Results.hess3 = hessian(@(B) -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.Spike,B)),Results.beta);
     Results.ihess = inv(Results.hess3);
 end
 
@@ -378,14 +378,14 @@ Results.stars((Results.pv >= 0.05) & (Results.pv < 0.1)) = {'* '};
 Results.stars(Results.pv >= 0.1) = {' '};
 Results.stars(isnan(Results.pv)) = {' '};
 
-betaX = Results.beta(numDistParam+INPUT.SpikeTrue+1:end);
-betaX = num2cell(reshape(betaX,numX,numDistParam+INPUT.SpikeTrue));
-stdX = Results.std(numDistParam+INPUT.SpikeTrue+1:end);
-stdX = num2cell(reshape(stdX,numX,numDistParam+INPUT.SpikeTrue));
-pvX = Results.pv(numDistParam+INPUT.SpikeTrue+1:end);
-pvX = num2cell(reshape(pvX,numX,numDistParam+INPUT.SpikeTrue));
-starsX = Results.stars(numDistParam+INPUT.SpikeTrue+1:end);
-starsX = reshape(starsX,numX,numDistParam+INPUT.SpikeTrue);
+betaX = Results.beta(numDistParam+INPUT.Spike+1:end);
+betaX = num2cell(reshape(betaX,numX,numDistParam+INPUT.Spike));
+stdX = Results.std(numDistParam+INPUT.Spike+1:end);
+stdX = num2cell(reshape(stdX,numX,numDistParam+INPUT.Spike));
+pvX = Results.pv(numDistParam+INPUT.Spike+1:end);
+pvX = num2cell(reshape(pvX,numX,numDistParam+INPUT.Spike));
+starsX = Results.stars(numDistParam+INPUT.Spike+1:end);
+starsX = reshape(starsX,numX,numDistParam+INPUT.Spike);
 
 R_out(1,1) = {['Fitted ',Distributions{[Distributions{:,1}]==dist,2},' distribution parameters']};
 R_out(4,1) = {'dist. parameters:'};
@@ -527,7 +527,7 @@ for i = 1:numDistParam
     R_out(4,2+(i-1)*4:2+(i-1)*4+3) = [Results.beta(i),Results.stars(i),Results.std(i),Results.pv(i)];
 end
 
-if INPUT.SpikeTrue
+if INPUT.Spike
     R_out(2,1+4*numDistParam+1) = {'spike'};
     R_out(3,1+4*numDistParam+1:1+4*numDistParam+4) = head(2:5);
     R_out(4,1+4*numDistParam+1:1+4*numDistParam+4) = [Results.beta(numDistParam+1),Results.stars(numDistParam+1),Results.std(numDistParam+1),Results.pv(numDistParam+1)];
@@ -538,7 +538,7 @@ if numX > 0
     for i = 1:numDistParam
         R_out(5:numX+4,2+(i-1)*4:2+(i-1)*4+3) = [betaX(:,i),starsX(:,i),stdX(:,i),pvX(:,i)];
     end
-    if INPUT.SpikeTrue
+    if INPUT.Spike
         R_out(5:numX+4,1+4*numDistParam+1:1+4*numDistParam+4) = [betaX(:,numDistParam+1),starsX(:,numDistParam+1),stdX(:,numDistParam+1),pvX(:,numDistParam+1)];
     end
 end
@@ -664,7 +664,7 @@ fprintf('%-*s% *d\n',mCW2(1)+spacing+spacing2,R_out{9+numX,1}, mCW2(2),R_out{9+n
 fprintf('%-*s% *d\n',mCW2(1)+spacing+spacing2,R_out{10+numX,1}, mCW2(2),R_out{10+numX,2})
 
 
- % save out2
+% save out2
 
 
 
@@ -676,11 +676,11 @@ if INPUT.SimStats && err == 0
     Bi = mvnrnd(Results.beta,Results.ihess,sim1)'; % draw parameter distributions taking uncertainty (standard errors) into account
     
     bDist = Bi(1:numDistParam,:); % numDistParam x sim1
-    if INPUT.SpikeTrue
+    if INPUT.Spike
         if numX > 0 % Spike and X
             meanX = mean(bsxfun(@times,INPUT.X,INPUT.WT));
             for i = 1:numDistParam
-             %   bDist = bDist + repmat(meanX,[1,numDistParam])*Bi(numDistParam+1+1:numDistParam+1 + numDistParam*numX,:);
+                %   bDist = bDist + repmat(meanX,[1,numDistParam])*Bi(numDistParam+1+1:numDistParam+1 + numDistParam*numX,:);
                 bDist(i,:) = bDist(i,:) + meanX*Bi(numDistParam+1+1+numX*(i-1):numDistParam+1 + numX*i,:);
             end
             bSpike = Bi(numDistParam+1,:) + meanX*Bi(numDistParam*(1+numX)+1+1:(numDistParam+1)*(1+numX),:);
@@ -699,7 +699,7 @@ if INPUT.SimStats && err == 0
             for i = 1:numDistParam
                 bDist(i,:) = bDist(i,:) + meanX*Bi(numDistParam+1+numX*(i-1):numDistParam+numX*i,:);
             end
-           % bDist = bDist + repmat(meanX,[1,numDistParam])*Bi(numDistParam+1:numDistParam*(1+numX),:);
+            % bDist = bDist + repmat(meanX,[1,numDistParam])*Bi(numDistParam+1:numDistParam*(1+numX),:);
         else % baseline distribution only
             % bDist only
         end
@@ -790,7 +790,7 @@ if INPUT.SimStats && err == 0
             for i = 1:sim1
                 Bmtx(i,:) = random('nbin',bDist(1,i),bDist(2,i),[1,sim2]);
             end
-        Bmtx(repmat(tSpike',[1,sim2])) = 0;
+            Bmtx(repmat(tSpike',[1,sim2])) = 0;
     end
     
     stats1 = [mean(Bmtx(:)) std(Bmtx(:)) median(Bmtx(:)) quantile((Bmtx(:)),0.025) quantile((Bmtx(:)),0.975)];
@@ -799,17 +799,17 @@ if INPUT.SimStats && err == 0
     stats32 = quantile([mean(Bmtx,1); std(Bmtx,[],1); median(Bmtx,1); quantile(Bmtx,0.025,1); quantile(Bmtx,0.975,1)],0.975,2)';
     
     stats = [stats1; stats2; stats31; stats32];
-        
+    
     stats_out(1,2:6) = {'mean','s.d.','median','q0.025','q0.975'};
     
     
-    if INPUT.SpikeTrue
+    if INPUT.Spike
         stats = [stats, [mean(pSpike); std(pSpike); quantile(pSpike,0.025); quantile(pSpike,0.0975)]];
         stats_out(1,7) = {'p.spike'};
     end
     
     stats_out(2:5,1) = {'value','s.e.','lower 95% c.i.','upper 95% c.i.'};
-    stats_out(2:5,2:6+INPUT.SpikeTrue) = num2cell(stats);
+    stats_out(2:5,2:6+INPUT.Spike) = num2cell(stats);
     
     Results.stats = stats;
     Results.stats_out = stats_out;
@@ -817,11 +817,11 @@ if INPUT.SimStats && err == 0
     fprintf('\n\n%s\n','Fitted distribution descriptive statistics:')
     
     [~,mCW3] = CellColumnWidth(stats_out); % width and max width of each column
-    if INPUT.SpikeTrue
+    if INPUT.Spike
         fprintf('%*s%*s%*s%*s%*s%*s%*s\n',mCW3(1)+spacing2,stats_out{1,1}, mCW3(2)+spacing2+precision,stats_out{1,2}, mCW3(3)+spacing2+precision,stats_out{1,3}, mCW3(4)+spacing2+precision,stats_out{1,4}, mCW3(5)+spacing2+precision,stats_out{1,5}, mCW3(6)+spacing2+precision,stats_out{1,6}, mCW3(7)+spacing2+precision,stats_out{1,7})
         for j = 2:size(stats_out,1)
             fprintf('%-*s% *.*f% *.*f% *.*f% *.*f% *.*f% *.*f\n',mCW3(1)+spacing2,stats_out{j,1}, mCW3(2)+spacing2+precision,precision,stats_out{j,2}, mCW3(3)+spacing2+precision,precision,stats_out{j,3}, mCW3(4)+spacing2+precision,precision,stats_out{j,4}, mCW3(5)+spacing2+precision,precision,stats_out{j,5}, mCW3(6)+spacing2+precision,precision,stats_out{j,6}, mCW3(7)+spacing2+precision,precision,stats_out{j,7})
-        end    
+        end
     else
         fprintf('%*s%*s%*s%*s%*s%*s\n',mCW3(1)+spacing2,stats_out{1,1}, mCW3(2)+spacing2+precision,stats_out{1,2}, mCW3(3)+spacing2+precision,stats_out{1,3}, mCW3(4)+spacing2+precision,stats_out{1,4}, mCW3(5)+spacing2+precision,stats_out{1,5}, mCW3(6)+spacing2+precision,stats_out{1,6})
         for j = 2:size(stats_out,1)
