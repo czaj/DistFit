@@ -57,24 +57,24 @@ switch dist
             cdf('Extreme Value',bounds(:,1),bDist(1),bDist(2));
         dp(dp==0) = pdf('Extreme Value',bounds_min(dp==0,1),bDist(1),bDist(2));
     case 3 % Generalized Extreme Value % k, sigma>0, mu
-        dp = cdf('Generalized Extreme Value',bounds(:,2),bDist(1),bDist(2),bDist(3)) - ...
-            cdf('Generalized Extreme Value',bounds(:,1),bDist(1),bDist(2),bDist(3));
-        dp(dp==0) = pdf('Generalized Extreme Value',bounds_min(dp==0,1),bDist(1),bDist(2),bDist(3));
+        dp = cdf('Generalized Extreme Value',bounds(:,2),bDist(1),bDist(2)) - ...
+            cdf('Generalized Extreme Value',bounds(:,1),bDist(1)+X*bCovDist(1:numX),bDist(2)+X*bCovDist(numX+1:numX*2),bDist(3)+X*bCovDist(numX*2+1:numX*3));
+        dp(dp==0) = pdf('Generalized Extreme Value',bounds_min(dp==0,1),bDist(1)+X(dp==0,:)*bCovDist(1:numX),bDist(2)+X(dp==0,:)*bCovDist(numX+1:numX*2),bDist(3)+X(dp==0,:)*bCovDist(numX*2+1:numX*3));
     case 4 % tLocationScale % mu, sigma>0, nu>0
-        dp = cdf('tLocationScale',bounds(:,2),bDist(1),bDist(2),bDist(3)) - ...
-            cdf('tLocationScale',bounds(:,1),bDist(1),bDist(2),bDist(3));
-        dp(dp==0) = pdf('tLocationScale',bounds_min(dp==0,1),bDist(1),bDist(2),bDist(3));
+        dp = cdf('tLocationScale',bounds(:,2),bDist(1)+X*bCovDist(1:numX),bDist(2).*exp(X*bCovDist(numX+1:numX*2)),bDist(3).*exp(X*bCovDist(numX*2+1:numX*3))) - ...
+            cdf('tLocationScale',bounds(:,1),bDist(1)+X*bCovDist(1:numX),bDist(2).*exp(X*bCovDist(numX+1:numX*2)),bDist(3).*exp(X*bCovDist(numX*2+1:numX*3)));
+        dp(dp==0) = pdf('tLocationScale',bounds_min(dp==0,1),bDist(1)+X(dp==0,:)*bCovDist(1:numX),bDist(2).*exp(X(dp==0,:)*bCovDist(numX+1:numX*2)),bDist(3).*exp(X(dp==0,:)*bCovDist(numX*2+1:numX*3)));
     case 5 % Uniform % min, max
         %         save tmp2
         %         return
         dp = cdf('Uniform',bounds(:,2),bDist(1),bDist(2)) - ...
-            cdf('Uniform',bounds(:,1),bDist(1),bDist(2));
+            cdf('Uniform',bounds(:,1),bDist(1),bDist(2)));
         dp(dp==0) = pdf('Uniform',bounds_min(dp==0,1),bDist(1),bDist(2));
     case 6 % Johnson SU % gamma, delta>0, mi, sigma>0
         %         save tmp1
-        dp = JohnsonCDF(bounds(:,2),bDist(1),bDist(2),bDist(3),bDist(4),'SU') - ...
-            JohnsonCDF(bounds(:,1),bDist(1),bDist(2),bDist(3),bDist(4),'SU');
-        dp(dp==0) = JohnsonPDF(bounds_min(dp==0,1),bDist(1),bDist(2),bDist(3),bDist(4),'SU');
+        dp = JohnsonCDF(bounds(:,2),bDist(1)+X*bCovDist(1:numX),bDist(2)+X*bCovDist(numX+1:numX*2),bDist(3)+X*bCovDist(numX*2+1:numX*3),bDist(4)+X*bCovDist(numX*3+1:numX*4),'SU') - ...
+            JohnsonCDF(bounds(:,1),bDist(1)+X*bCovDist(1:numX),bDist(2)+X*bCovDist(numX+1:numX*2),bDist(3)+X*bCovDist(numX*2+1:numX*3),bDist(4)+X*bCovDist(numX*3+1:numX*4),'SU');
+        dp(dp==0) = JohnsonPDF(bounds_min(dp==0,1),bDist(1)+X(dp==0,:)*bCovDist(1:numX),bDist(2)+X(dp==0,:)*bCovDist(numX+1:numX*2),bDist(3)+X(dp==0,:)*bCovDist(numX*2+1:numX*3),bDist(4)+X(dp==0,:)*bCovDist(numX*3+1:numX*4),'SU');
         %         save tmp1
         %         return
         
@@ -110,9 +110,9 @@ switch dist
             cdf('BirnbaumSaunders',bounds(:,1),bDist(1),bDist(2));
         dp(dp==0) = pdf('BirnbaumSaunders',bounds_min(dp==0,1),bDist(1),bDist(2));
     case 17 % Generalized Pareto % k, sigma>0, theta
-        dp = cdf('Generalized Pareto',bounds(:,2),bDist(1),bDist(2),bDist(3)) - ...
-            cdf('Generalized Pareto',bounds(:,1),bDist(1),bDist(2),bDist(3));
-        dp(dp==0) = pdf('Generalized Pareto',bounds_min(dp==0,1),bDist(1),bDist(2),bDist(3));
+        dp = cdf('Generalized Pareto',bounds(:,2),bDist(1)+X*bCovDist(1:numX),bDist(2)+X*bCovDist(numX+1:numX*2),bDist(3)+X*bCovDist(numX*2+1:numX*3)) - ...
+            cdf('Generalized Pareto',bounds(:,1),bDist(1)+X*bCovDist(1:numX),bDist(2)+X*bCovDist(numX+1:numX*2),bDist(3)+X*bCovDist(numX*2+1:numX*3));
+        dp(dp==0) = pdf('Generalized Pareto',bounds_min(dp==0,1),bDist(1)+X(dp==0,:)*bCovDist(1:numX),bDist(2)+X(dp==0,:)*bCovDist(numX+1:numX*2),bDist(3)+X(dp==0,:)*bCovDist(numX*2+1:numX*3));
     case 18 % InverseGaussian % k>0, sigma>0
         dp = cdf('InverseGaussian',bounds(:,2),bDist(1),bDist(2)) - ...
             cdf('InverseGaussian',bounds(:,1),bDist(1),bDist(2));
@@ -129,17 +129,17 @@ switch dist
             cdf('Rician',bounds(:,1),bDist(1),bDist(2));
         dp(dp==0) = pdf('Rician',bounds_min(dp==0,1),bDist(1),bDist(2));
     case 21 % Johnson SB % gamma, delta>0, mi, sigma>0
-        dp = JohnsonCDF(bounds(:,2),bDist(1),bDist(2),bDist(3),bDist(4),'SB') - ...
-            JohnsonCDF(bounds(:,1),bDist(1),bDist(2),bDist(3),bDist(4),'SB');
-        dp(dp==0) = JohnsonPDF(bounds_min(dp==0,1),bDist(1),bDist(2),bDist(3),bDist(4),'SB');
+        dp = JohnsonCDF(bounds(:,2),bDist(1)+X*bCovDist(1:numX),bDist(2)+X*bCovDist(numX+1:numX*2),min(bounds(:))-eps,max(bounds(:))-min(bounds(:))+2*eps,'SB') - ...
+            JohnsonCDF(bounds(:,1),bDist(1)+X*bCovDist(1:numX),bDist(2)+X*bCovDist(numX+1:numX*2),min(bounds(:))-eps,max(bounds(:))-min(bounds(:))+2*eps,'SB');
+        dp(dp==0) = JohnsonPDF(bounds_min(dp==0,1),bDist(1)+X(dp==0,:)*bCovDist(1:numX),bDist(2)+X(dp==0,:)*bCovDist(numX+1:numX*2),min(bounds(:))-eps,max(bounds(:))-min(bounds(:))+2*eps,'SB');
         % p = (1-pSpike).*dp;
         % p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike(bounds(:,1) <= 0 & 0 <= bounds(:,2));
         % p(p<=0) = eps; % realmin
         % f = log(p).*weights;
     case 22 % Johnson SL % gamma, delta>0, mi, sigma>0
-        dp = JohnsonCDF(bounds(:,2),bDist(1),bDist(2),bDist(3),bDist(4),'SL') - ...
-            JohnsonCDF(bounds(:,1),bDist(1),bDist(2),bDist(3),bDist(4),'SL');
-        dp(dp==0) = JohnsonPDF(bounds_min(dp==0,1),bDist(1),bDist(2),bDist(3),bDist(4),'SL');
+        dp = JohnsonCDF(bounds(:,2),bDist(1)+X*bCovDist(1:numX),bDist(2)+X*bCovDist(numX+1:numX*2),min(bounds(:))-eps,exp(bDist(3)+(X*bCovDist(numX*2+1:numX*3))),'SL') - ...
+            JohnsonCDF(bounds(:,1),bDist(1)+X*bCovDist(1:numX),bDist(2)+X*bCovDist(numX+1:numX*2),min(bounds(:))-eps,exp(bDist(3)+(X*bCovDist(numX*2+1:numX*3))),'SL');
+        dp(dp==0) = JohnsonPDF(bounds_min(dp==0,1),bDist(1)+X(dp==0,:)*bCovDist(1:numX),bDist(2)+X(dp==0,:)*bCovDist(numX+1:numX*2),min(bounds(:))-eps,exp(bDist(3)+(X(dp==0,:)*bCovDist(numX*2+1:numX*3))),'SL');
         %     case x % Burr % Error - Parto distribution fits better
         %           p = cdf('Burr',bounds,b0(1),b0(2),b0(3));
         %           f = RealMin*log(max(eps,p(:,2) - p(:,1))) + ~RealMin*log(p(:,2) - p(:,1));
