@@ -86,12 +86,16 @@ Worksheet.Columns.Item(3).columnWidth = 3;
 Worksheet.Columns.Item(7).columnWidth = 3;
 Worksheet.Columns.Item(11).columnWidth = 3;
 
+Worksheet.Activate;
+displayFormat = ActiveWorksheet.DisplayFormat
+ActiveWorksheetRange = Excel.Activesheet.get('Range','A:Z');
+ActiveWorksheetRange.NumberFormat = '0,0000'; % If Excel uses dots as decimal places, this should be adjusted here.
+
 % hExcel.Cells.Select;
 % hExcel.Cells.EntireColumn.AutoFit;
 
-Worksheet.Activate;
-ActiveWorksheetRange = Excel.Activesheet.get('Range','A:Z');
-ActiveWorksheetRange.NumberFormat = '0,0000'; % If Excel uses dots as decimal places, this should be adjusted here.
+% RngObj = SheetObj.Range('B2:C9') % object pointing to a range
+% RngObj.cells.EntireColumn.NumberFormat = '0.00E+00';
 
 Workbook.Save
 Workbook.Close

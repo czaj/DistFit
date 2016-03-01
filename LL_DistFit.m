@@ -88,7 +88,7 @@ switch dist
     case 11 % Lognormal % mu, sigma>0
         dp = cdf('Lognormal',bounds(:,2),bDist(1),bDist(2)) - ...
             cdf('Lognormal',bounds(:,1),bDist(1),bDist(2));
-        dp(dp==0) = pdf('Lognormal',bounds_min(dp==0,1),bDist(1),bDist(2)));
+        dp(dp==0) = pdf('Lognormal',bounds_min(dp==0,1),bDist(1),bDist(2));
     case 12 % Loglogistic % mu>0, sigma>0
         dp = cdf('Loglogistic',bounds(:,2),bDist(1),bDist(2)) - ...
             cdf('Loglogistic',bounds(:,1),bDist(1),bDist(2));
@@ -121,9 +121,9 @@ switch dist
         dp = cdf('Nakagami',bounds(:,2),bDist(1),bDist(2)) - ...
             cdf('Nakagami',bounds(:,1),bDist(1),bDist(2));
         dp(dp==0) = pdf('Nakagami',bounds_min(dp==0,1),bDist(1),bDist(2));
-        p = (1-pSpike).*dp;
-        p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike(bounds(:,1) <= 0 & 0 <= bounds(:,2));
-        f = log(p).*weights;
+%         p = (1-pSpike).*dp;
+%         p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike(bounds(:,1) <= 0 & 0 <= bounds(:,2));
+%         f = log(p).*weights;
     case 20 % Rician % s>=0, sigma>0
         dp = cdf('Rician',bounds(:,2),bDist(1),bDist(2)) - ...
             cdf('Rician',bounds(:,1),bDist(1),bDist(2));
