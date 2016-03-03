@@ -2,7 +2,7 @@ function Results = DistFit(INPUT,varargin)
 
 
 %% check no. of inputs
-
+cprintf('\n\n')
 if nargin < 1
     error('Too few input arguments for DistFit(INPUT,dist,b0,EstimOpt)')
 elseif nargin == 1
@@ -64,37 +64,47 @@ elseif any(sum(isfinite(INPUT.bounds),2)==0) % both bounds infinite
     error('Dataset includes observations with infinite bounds')
 elseif any(INPUT.bounds(:,1) > INPUT.bounds(:,2))
     error('Some lower bounds are greater than upper bounds')
-elseif any(dist == [10:21,31:32]) && any(INPUT.bounds(:,2) < 0)
-    error('Negative upper bounds not consistent with the distribution type')
-elseif any(dist == [10:20,31:32]) && any(INPUT.bounds(:,1) < 0)
-    cprintf(rgb('DarkOrange'), 'WARNING: Negative lower bounds not consistent with the distribution type - censoring to 0 \n')
-    INPUT.bounds(INPUT.bounds(:,1)<0,1) = 0;
-    INPUT.bounds(:,2) = max(INPUT.bounds,[],2);
-elseif dist == 5 && any(INPUT.bounds(:,1) == -Inf)
-    cprintf(rgb('DarkOrange'), 'WARNING: -Inf lower bounds not consistent with uniform distribution - censoring to minimum finite bound \n')
-    INPUT.bounds(INPUT.bounds(:,1)==-Inf,1) = min([INPUT.bounds(isfinite(INPUT.bounds));0]);
-    INPUT.bounds(:,2) = max(INPUT.bounds,[],2);
+    % elseif any(dist == [10:21,31:32]) && any(INPUT.bounds(:,2) < 0)
+    %     error('Negative upper bounds not consistent with the distribution type')
+    % elseif any(dist == [10:20,31:32]) && any(INPUT.bounds(:,1) < 0)
+    %     cprintf(rgb('DarkOrange'), 'WARNING: Negative lower bounds not consistent with the distribution type - censoring to 0 \n')
+    %     INPUT.bounds(INPUT.bounds(:,1)<0,1) = 0;
+    %     INPUT.bounds(:,2) = max(INPUT.bounds,[],2);
+    % elseif dist == 5 && any(INPUT.bounds(:,1) == -Inf)
+    %     cprintf(rgb('DarkOrange'), 'WARNING: -Inf lower bounds not consistent with uniform distribution - censoring to minimum finite bound \n')
+    %     INPUT.bounds(INPUT.bounds(:,1)==-Inf,1) = min([INPUT.bounds(isfinite(INPUT.bounds));0]);
+    %     INPUT.bounds(:,2) = max(INPUT.bounds,[],2);
 end
-if any(dist == 11:20) && any(INPUT.bounds(:,2) == 0)
-    cprintf(rgb('DarkOrange'), 'WARNING: 0 upper bounds not consistent with lognormal distribution - censoring to eps \n')
-    INPUT.bounds(INPUT.bounds(:,2)==0,2) = eps;
+
+
+% Czy mog?aby? sprawdzi?, czy osobno trzeba rozpatrywa? przypadek ujemnych warto?ci i niedodatnich warto?ci - a je?li tak to rozdzieli? te 2 przypadki?
+% Spike troch? to zmienia, bo jak jest spike w zerze to nawet rozk?ady, które wymagaj? dodatnich warto?ci a która? jest równa 0 to i tak jest ok.
+
+if any(dist == [10:21,31:32]) && (any(INPUT.bounds(:,2) <= 0) || (INPUT.Spike && any(INPUT.bounds(:,2) < 0)))
+    cprintf(rgb('DarkOrange'), 'WARNING: Data contains observations not consistent with the distribution type (negative) \n')
 end
-if any(dist == [21:22]) && any(INPUT.bounds(:,1) == -Inf)
-    cprintf(rgb('DarkOrange'), 'WARNING: -Inf lower bounds not consistent with Johnson SB / SL distribution - censoring to minimum finite bound or 0 \n')
-    INPUT.bounds(INPUT.bounds(:,1)==-Inf,1) = min([INPUT.bounds(isfinite(INPUT.bounds));0]);
-    INPUT.bounds(:,2) = max(INPUT.bounds,[],2);
-end
+
+% if any(dist == [31:32]) && ~isinteger(INPUT.bounds(isfinite(INPUT.bounds))) % also 32?
+% %     cprintf(rgb('DarkOrange'), 'WARNING: Rounding up finite bounds to integer values to match the distribution type \n')
+% %     INPUT.bounds(isfinite(INPUT.bounds)) = round(INPUT.bounds(isfinite(INPUT.bounds)));
+%     cprintf(rgb('DarkOrange'), 'WARNING: Data contains observations not consistent with the distribution type (not integer)\n')
+% end
+
+% if any(dist == 11:20) && any(INPUT.bounds(:,2) == 0)
+%     cprintf(rgb('DarkOrange'), 'WARNING: 0 upper bounds not consistent with lognormal distribution - censoring to eps \n')
+%     INPUT.bounds(INPUT.bounds(:,2)==0,2) = eps;
+% end
+% if any(dist == [21:22]) && any(INPUT.bounds(:,1) == -Inf)
+%     cprintf(rgb('DarkOrange'), 'WARNING: -Inf lower bounds not consistent with Johnson SB / SL distribution - censoring to minimum finite bound or 0 \n')
+%     INPUT.bounds(INPUT.bounds(:,1)==-Inf,1) = min([INPUT.bounds(isfinite(INPUT.bounds));0]);
+%     INPUT.bounds(:,2) = max(INPUT.bounds,[],2);
+% end
 if dist == 21 && any(INPUT.bounds(:,2) == Inf)
     cprintf(rgb('DarkOrange'), 'WARNING: Inf upper bounds not consistent with Johnson SB distribution - censoring to maximum finite bound \n')
     INPUT.bounds(INPUT.bounds(:,2)==Inf,2) = max(INPUT.bounds(isfinite(INPUT.bounds)));
     INPUT.bounds(:,1) = min(INPUT.bounds,[],2);
 end
 
-% perhaps we will need to check if bounds == 0, but let's leave if for later, when the spike option is added.
-if any(dist == 31:32) && isinteger(INPUT.bounds(isfinite(INPUT.bounds)))
-    cprintf(rgb('DarkOrange'), 'WARNING: Rounding up finite bounds to integer values to match the distribution type \n')
-    INPUT.bounds(isfinite(INPUT.bounds)) = round(INPUT.bounds(isfinite(INPUT.bounds)));
-end
 
 % this is temporary:
 % if dist == 21 && any(INPUT.bounds(:) == 0)
@@ -208,38 +218,37 @@ if ~exist('b0','var') || isempty(b0)
             
             % bounded (0,Inf)
         case 10 % exponential
-            pd = fitdist(midpoint,'Exponential','Options',OptimOptFit);
+            pd = fitdist(midpoint(midpoint>0),'Exponential','Options',OptimOptFit);
             b0 = pd.ParameterValues; % mu
         case 11 % lognormal
-            midpoint(midpoint <= 0) = eps;
-            pd = fitdist(midpoint,'Lognormal','Options',OptimOptFit);
+            pd = fitdist(midpoint(midpoint>0),'Lognormal','Options',OptimOptFit);
             b0 = pd.ParameterValues; % mu, sigma
         case 12 % loglogistic
-            pd = fitdist(midpoint,'Loglogistic','Options',OptimOptFit);
+            pd = fitdist(midpoint(midpoint>0),'Loglogistic','Options',OptimOptFit);
             b0 = pd.ParameterValues; % mu, sigma
         case 13 % Weibull
-            pd = fitdist(midpoint,'Weibull','Options',OptimOptFit);
+            pd = fitdist(midpoint(midpoint>0),'Weibull','Options',OptimOptFit);
             b0 = pd.ParameterValues; % A, B
         case 14 % Rayleigh
-            pd = fitdist(midpoint,'Rayleigh','Options',OptimOptFit);
+            pd = fitdist(midpoint(midpoint>0),'Rayleigh','Options',OptimOptFit);
             b0 = pd.ParameterValues; % B
         case 15 % Gamma
-            pd = fitdist(midpoint,'Gamma','Options',OptimOptFit);
+            pd = fitdist(midpoint(midpoint>0),'Gamma','Options',OptimOptFit);
             b0 = pd.ParameterValues; % a, b
         case 16 % BirnbaumSaunders
-            pd = fitdist(midpoint,'BirnbaumSaunders','Options',OptimOptFit);
+            pd = fitdist(midpoint(midpoint>0),'BirnbaumSaunders','Options',OptimOptFit);
             b0 = pd.ParameterValues; % beta, gamma
         case 17 % Generalized Pareto
-            pd = fitdist(midpoint,'GeneralizedPareto','Options',OptimOptFit);
+            pd = fitdist(midpoint(midpoint>0),'GeneralizedPareto','Options',OptimOptFit);
             b0 = pd.ParameterValues; % k, sigma, theta
         case 18 % InverseGaussian
-            pd = fitdist(midpoint,'InverseGaussian','Options',OptimOptFit);
+            pd = fitdist(midpoint(midpoint>0),'InverseGaussian','Options',OptimOptFit);
             b0 = pd.ParameterValues; % k, sigma
         case 19 % Nakagami
-            pd = fitdist(midpoint,'Nakagami','Options',OptimOptFit);
+            pd = fitdist(midpoint(midpoint>0),'Nakagami','Options',OptimOptFit);
             b0 = pd.ParameterValues; % mu, omega
         case 20 % Rician
-            pd = fitdist(midpoint,'Rician','Options',OptimOptFit);
+            pd = fitdist(midpoint(midpoint>0),'Rician','Options',OptimOptFit);
             b0 = pd.ParameterValues; % s, sigma
         case 21 % Johnson SB % gamma, delta, mi, sigma
             % b0 = [skewness(midpoint,0),kurtosis(midpoint,0),mean(midpoint),std(midpoint)];
@@ -260,7 +269,7 @@ if ~exist('b0','var') || isempty(b0)
             
             % discrete
         case 31 % Poisson
-            pd = fitdist(midpoint,'Poisson','Options',OptimOptFit);
+            pd = fitdist(round(midpoint),'Poisson','Options',OptimOptFit);
             b0 = pd.ParameterValues; % lambda
         case 32 % negative binomial
             pd = fitdist(round(midpoint),'NegativeBinomial','Options',OptimOptFit);
@@ -271,10 +280,24 @@ if ~exist('b0','var') || isempty(b0)
     
 end
 
-% check optimizer options:
+
+%% check optimizer options:
+% if ~isfield(INPUT,'OptimOpt') || isempty(INPUT.OptimOpt)
+%     INPUT.OptimOpt = optimoptions('fminunc');
+%     INPUT.OptimOpt.Algorithm = 'quasi-newton';
+%     INPUT.OptimOpt.MaxFunEvals = 1e6; % Maximum number of function evaluations allowed (1000)
+%     INPUT.OptimOpt.MaxIter = 1e3; % Maximum number of iterations allowed (500)
+%     INPUT.OptimOpt.GradObj = 'off';
+%     INPUT.OptimOpt.FinDiffType = 'central'; % ('forward')
+%     INPUT.OptimOpt.TolFun = 1e-12;
+%     INPUT.OptimOpt.TolX = 1e-12;
+%     INPUT.OptimOpt.OutputFcn = @outputf;
+%     % OptimOpt.Display = 'iter-detailed';
+% end
+
 if ~isfield(INPUT,'OptimOpt') || isempty(INPUT.OptimOpt)
-    INPUT.OptimOpt = optimoptions('fminunc');
-    INPUT.OptimOpt.Algorithm = 'quasi-newton';
+    INPUT.OptimOpt = optimoptions('fmincon');
+    INPUT.OptimOpt.Algorithm = 'interior-point'; %'sqp'; 'active-set'; 'trust-region-reflective';
     INPUT.OptimOpt.MaxFunEvals = 1e6; % Maximum number of function evaluations allowed (1000)
     INPUT.OptimOpt.MaxIter = 1e3; % Maximum number of iterations allowed (500)
     INPUT.OptimOpt.GradObj = 'off';
@@ -284,6 +307,10 @@ if ~isfield(INPUT,'OptimOpt') || isempty(INPUT.OptimOpt)
     INPUT.OptimOpt.OutputFcn = @outputf;
     % OptimOpt.Display = 'iter-detailed';
 end
+
+
+%% Print model specification
+
 
 Distributions = {...
     0 'Normal'; ...
@@ -337,7 +364,64 @@ else
 end
 
 
-[Results.beta, Results.fval, Results.flag, Results.out, Results.grad, Results.hess] = fminunc(@(b) -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT, dist,INPUT.Spike,b)), b0, INPUT.OptimOpt);
+%% Specify constraints
+
+
+switch dist
+    
+    % unbounded
+    case {0,1,2} % Normal: mu, sigma>=0; Logistic: mu, sigma>=0; % Extreme Value: mu, sigma>=0
+        Aeq = -[zeros(size(INPUT.bounds,1),1), ones(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),INPUT.Spike), ...
+            zeros(size(INPUT.bounds,1),numX), INPUT.X, zeros(size(INPUT.bounds,1),numX*INPUT.Spike)];
+        Ceq = zeros(size(INPUT.bounds,1),1);
+
+    case 3 % Generalized Extreme Value % k, sigma>0, mu
+        
+    case 4 % tLocationScale % mu, sigma>0, nu>0
+        
+    case 5 % Uniform % min, max
+    case 6 % Johnson SU % gamma, delta>0, mi, sigma>0
+        
+    case 10 % Exponential % mu>0
+        
+    case 11 % Lognormal % mu, sigma>0
+        
+    case 12 % Loglogistic % mu>0, sigma>0
+        
+    case 13 % Weibull % A>0, b0>0
+        
+    case 14 % Rayleigh % b0>0
+        
+    case 15 % Gamma % a>0, b>0
+        
+    case 16 % BirnbaumSaunders % beta>0, gamma>0
+        
+    case 17 % Generalized Pareto % k, sigma>0, theta
+        
+    case 18 % InverseGaussian % k>0, sigma>0
+        
+    case 19 % Nakagami % mu>=0.5, omega>0
+        
+    case 20 % Rician % s>=0, sigma>0
+        
+    case 21 % Johnson SB % gamma, delta>0, mi, sigma>0
+        
+    case 22 % Johnson SL % gamma, delta>0, mi, sigma>0
+        
+    case 31 % Poisson % lambda>0
+        
+    case 32 % Negative Binomial % R>0 and R is an integer, 0<P<1
+        
+end
+
+
+
+%% Optimization
+
+
+% [Results.beta, Results.fval, Results.flag, Results.out, Results.grad, Results.hess] = fminunc(@(b) -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT, dist,INPUT.Spike,b)), b0, INPUT.OptimOpt);
+
+[Results.beta, Results.fval, Results.flag, Results.out, Results.lambda, Results.grad, Results.hess] = fmincon(@(b) -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT, dist,INPUT.Spike,b)), b0,Aeq,Ceq,[],[],[],[],[],INPUT.OptimOpt);
 
 
 %% generate output
@@ -668,168 +752,171 @@ fprintf('%-*s% *d\n',mCW2(1)+spacing+spacing2,R_out{10+numX,1}, mCW2(2),R_out{10
 
 
 
-if INPUT.SimStats && err == 0
+if INPUT.SimStats
     
-    sim1 = 1e3;
-    sim2 = 1e3;
-    
-    Bi = mvnrnd(Results.beta,Results.ihess,sim1)'; % draw parameter distributions taking uncertainty (standard errors) into account
-    
-    bDist = Bi(1:numDistParam,:); % numDistParam x sim1
-    if INPUT.Spike
-        if numX > 0 % Spike and X
-            meanX = mean(bsxfun(@times,INPUT.X,INPUT.WT));
-            for i = 1:numDistParam
-                %   bDist = bDist + repmat(meanX,[1,numDistParam])*Bi(numDistParam+1+1:numDistParam+1 + numDistParam*numX,:);
-                bDist(i,:) = bDist(i,:) + meanX*Bi(numDistParam+1+1+numX*(i-1):numDistParam+1 + numX*i,:);
-            end
-            bSpike = Bi(numDistParam+1,:) + meanX*Bi(numDistParam*(1+numX)+1+1:(numDistParam+1)*(1+numX),:);
-            pSpike = normcdf(bSpike);
-            ru01 = random('unif',0,1,[1,sim1]);
-            tSpike = ru01 < pSpike;
-        else % Spike only
-            bSpike = Bi(numDistParam+1,:);
-            pSpike = normcdf(bSpike);
-            ru01 = random('unif',0,1,[1,sim1]);
-            tSpike = ru01 < pSpike;
-        end
+    if err ~= 0
+        cprintf(rgb('DarkOrange'), 'WARNING: AVC is not positive semi-definite - aborting simulation of descriptive statistics \n')
     else
-        if numX > 0 % X only
-            meanX = mean(bsxfun(@times,INPUT.X,INPUT.WT));
-            for i = 1:numDistParam
-                bDist(i,:) = bDist(i,:) + meanX*Bi(numDistParam+1+numX*(i-1):numDistParam+numX*i,:);
+        
+        sim1 = 1e3;
+        sim2 = 1e3;
+        
+        Bi = mvnrnd(Results.beta,Results.ihess,sim1)'; % draw parameter distributions taking uncertainty (standard errors) into account
+        
+        bDist = Bi(1:numDistParam,:); % numDistParam x sim1
+        if INPUT.Spike
+            if numX > 0 % Spike and X
+                meanX = mean(bsxfun(@times,INPUT.X,INPUT.WT));
+                for i = 1:numDistParam
+                    %   bDist = bDist + repmat(meanX,[1,numDistParam])*Bi(numDistParam+1+1:numDistParam+1 + numDistParam*numX,:);
+                    bDist(i,:) = bDist(i,:) + meanX*Bi(numDistParam+1+1+numX*(i-1):numDistParam+1 + numX*i,:);
+                end
+                bSpike = Bi(numDistParam+1,:) + meanX*Bi(numDistParam*(1+numX)+1+1:(numDistParam+1)*(1+numX),:);
+                pSpike = normcdf(bSpike);
+                ru01 = random('unif',0,1,[1,sim1]);
+                tSpike = ru01 < pSpike;
+            else % Spike only
+                bSpike = Bi(numDistParam+1,:);
+                pSpike = normcdf(bSpike);
+                ru01 = random('unif',0,1,[1,sim1]);
+                tSpike = ru01 < pSpike;
             end
-            % bDist = bDist + repmat(meanX,[1,numDistParam])*Bi(numDistParam+1:numDistParam*(1+numX),:);
-        else % baseline distribution only
-            % bDist only
+        else
+            if numX > 0 % X only
+                meanX = mean(bsxfun(@times,INPUT.X,INPUT.WT));
+                for i = 1:numDistParam
+                    bDist(i,:) = bDist(i,:) + meanX*Bi(numDistParam+1+numX*(i-1):numDistParam+numX*i,:);
+                end
+                % bDist = bDist + repmat(meanX,[1,numDistParam])*Bi(numDistParam+1:numDistParam*(1+numX),:);
+            else % baseline distribution only
+                % bDist only
+            end
+            tSpike = false(1,sim1);
         end
-        tSpike = false(1,sim1);
-    end
-    
-    Bmtx(sim1,sim2) = 0;
-    switch dist
-        case 0 % normal
-            for i = 1:sim1
-                Bmtx(i,:) = random('normal',bDist(1,i),bDist(2,i),[1,sim2]);
-            end
-        case 1 % logistic % mu, sigma
-            for i = 1:sim1
-                Bmtx(i,:) = random('logistic',bDist(1,i),bDist(2,i),[1,sim2]);
-            end
-        case 2 % Extreme Value % mu sigma
-            for i = 1:sim1
-                Bmtx(i,:) = random('Extreme Value',bDist(1,i),bDist(2,i),[1,sim2]);
-            end
-        case 3 % Generalized Extreme Value % k, sigma, mu
-            for i = 1:sim1
-                Bmtx(i,:) = random('Generalized Extreme Value',bDist(1,i),bDist(2,i),bDist(3,i),[1,sim2]);
-            end
-        case 4 % tLocationScale % mu, sigma, nu
-            for i = 1:sim1
-                Bmtx(i,:) = random('tlocationscale',bDist(1,i),bDist(2,i),bDist(3,i),[1,sim2]);
-            end
-        case 5 % uniform
-            for i = 1:sim1
-                Bmtx(i,:) = random('unif',bDist(1,i),bDist(2,i),[1,sim2]);
-            end
-        case 6 % Johnson SU % gamma, delta, mi, sigma
-            % na to nawet nie mamy funkcji...
-        case 10 % exponential % mu
-            for i = 1:sim1
-                Bmtx(i,:) = random('exp',bDist(1,i),[1,sim2]);
-            end
-        case 11 % lognormal % mu, sigma
-            for i = 1:sim1
-                Bmtx(i,:) = random('logn',bDist(1,i),bDist(2,i),[1,sim2]);
-            end
-        case 12 % loglogistic % mu, sigma
-            for i = 1:sim1
-                Bmtx(i,:) = random('loglogistic',bDist(1,i),bDist(2,i),[1,sim2]);
-            end
-        case 13 % Weibull % A, B
-            for i = 1:sim1
-                Bmtx(i,:) = random('wbl',bDist(1,i),bDist(2,i),[1,sim2]);
-            end
-        case 14 % Rayleigh % B
-            for i = 1:sim1
-                Bmtx(i,:) = random('rayl',bDist(1,i),[1,sim2]);
-            end
-        case 15 % Gamma % a, b
-            for i = 1:sim1
-                Bmtx(i,:) = random('gam',bDist(1,i),bDist(2,i),[1,sim2]);
-            end
-        case 16 % BirnbaumSaunders % beta, gamma
-            for i = 1:sim1
-                Bmtx(i,:) = random('birnbaumsaunders',bDist(1,i),bDist(2,i),[1,sim2]);
-            end
-        case 17 % Generalized Pareto % k, sigma, theta
-            for i = 1:sim1
-                Bmtx(i,:) = random('gp',bDist(1,i),bDist(2,i),bDist(3,i),[1,sim2]);
-            end
-        case 18 % InverseGaussian % k, sigma
-            for i = 1:sim1
-                Bmtx(i,:) = random('inversegaussian',bDist(1,i),bDist(2,i),[1,sim2]);
-            end
-        case 19 % Nakagami % mu, omega
-            for i = 1:sim1
-                Bmtx(i,:) = random('nakagami',bDist(1,i),bDist(2,i),[1,sim2]);
-            end
-        case 20 % Rician % s, sigma
-            for i = 1:sim1
-                Bmtx(i,:) = random('rician',bDist(1,i),bDist(2,i),[1,sim2]);
-            end
-        case 21 % Johnson SB % gamma, delta, mi, sigma
-            % Brak funkcji
-        case 22 % Johnson SL % gamma, delta, mi, sigma
-            % Brak funkcji
-        case 31 % Poisson % lambda
-            for i = 1:sim1
-                Bmtx(i,:) = random('Poisson',bDist(1,i),[1,sim2]);
-            end
-        case 32 % negative binomial % R, P
-            for i = 1:sim1
-                Bmtx(i,:) = random('nbin',bDist(1,i),bDist(2,i),[1,sim2]);
-            end
-            Bmtx(repmat(tSpike',[1,sim2])) = 0;
-    end
-    
-    stats1 = [mean(Bmtx(:)) std(Bmtx(:)) median(Bmtx(:)) quantile((Bmtx(:)),0.025) quantile((Bmtx(:)),0.975)];
-    stats2 = std([mean(Bmtx,1); std(Bmtx,[],1); median(Bmtx,1); quantile(Bmtx,0.025,1); quantile(Bmtx,0.975,1)],[],2)';
-    stats31 = quantile([mean(Bmtx,1); std(Bmtx,[],1); median(Bmtx,1); quantile(Bmtx,0.025,1); quantile(Bmtx,0.975,1)],0.025,2)';
-    stats32 = quantile([mean(Bmtx,1); std(Bmtx,[],1); median(Bmtx,1); quantile(Bmtx,0.025,1); quantile(Bmtx,0.975,1)],0.975,2)';
-    
-    stats = [stats1; stats2; stats31; stats32];
-    
-    stats_out(1,2:6) = {'mean','s.d.','median','q0.025','q0.975'};
-    
-    
-    if INPUT.Spike
-        stats = [stats, [mean(pSpike); std(pSpike); quantile(pSpike,0.025); quantile(pSpike,0.0975)]];
-        stats_out(1,7) = {'p.spike'};
-    end
-    
-    stats_out(2:5,1) = {'value','s.e.','lower 95% c.i.','upper 95% c.i.'};
-    stats_out(2:5,2:6+INPUT.Spike) = num2cell(stats);
-    
-    Results.stats = stats;
-    Results.stats_out = stats_out;
-    
-    fprintf('\n\n%s\n','Fitted distribution descriptive statistics:')
-    
-    [~,mCW3] = CellColumnWidth(stats_out); % width and max width of each column
-    if INPUT.Spike
-        fprintf('%*s%*s%*s%*s%*s%*s%*s\n',mCW3(1)+spacing2,stats_out{1,1}, mCW3(2)+spacing2+precision,stats_out{1,2}, mCW3(3)+spacing2+precision,stats_out{1,3}, mCW3(4)+spacing2+precision,stats_out{1,4}, mCW3(5)+spacing2+precision,stats_out{1,5}, mCW3(6)+spacing2+precision,stats_out{1,6}, mCW3(7)+spacing2+precision,stats_out{1,7})
-        for j = 2:size(stats_out,1)
-            fprintf('%-*s% *.*f% *.*f% *.*f% *.*f% *.*f% *.*f\n',mCW3(1)+spacing2,stats_out{j,1}, mCW3(2)+spacing2+precision,precision,stats_out{j,2}, mCW3(3)+spacing2+precision,precision,stats_out{j,3}, mCW3(4)+spacing2+precision,precision,stats_out{j,4}, mCW3(5)+spacing2+precision,precision,stats_out{j,5}, mCW3(6)+spacing2+precision,precision,stats_out{j,6}, mCW3(7)+spacing2+precision,precision,stats_out{j,7})
+        
+        Bmtx(sim1,sim2) = 0;
+        switch dist
+            case 0 % normal
+                for i = 1:sim1
+                    Bmtx(i,:) = random('normal',bDist(1,i),bDist(2,i),[1,sim2]);
+                end
+            case 1 % logistic % mu, sigma
+                for i = 1:sim1
+                    Bmtx(i,:) = random('logistic',bDist(1,i),bDist(2,i),[1,sim2]);
+                end
+            case 2 % Extreme Value % mu sigma
+                for i = 1:sim1
+                    Bmtx(i,:) = random('Extreme Value',bDist(1,i),bDist(2,i),[1,sim2]);
+                end
+            case 3 % Generalized Extreme Value % k, sigma, mu
+                for i = 1:sim1
+                    Bmtx(i,:) = random('Generalized Extreme Value',bDist(1,i),bDist(2,i),bDist(3,i),[1,sim2]);
+                end
+            case 4 % tLocationScale % mu, sigma, nu
+                for i = 1:sim1
+                    Bmtx(i,:) = random('tlocationscale',bDist(1,i),bDist(2,i),bDist(3,i),[1,sim2]);
+                end
+            case 5 % uniform
+                for i = 1:sim1
+                    Bmtx(i,:) = random('unif',bDist(1,i),bDist(2,i),[1,sim2]);
+                end
+            case 6 % Johnson SU % gamma, delta, mi, sigma
+                % na to nawet nie mamy funkcji...
+            case 10 % exponential % mu
+                for i = 1:sim1
+                    Bmtx(i,:) = random('exp',bDist(1,i),[1,sim2]);
+                end
+            case 11 % lognormal % mu, sigma
+                for i = 1:sim1
+                    Bmtx(i,:) = random('logn',bDist(1,i),bDist(2,i),[1,sim2]);
+                end
+            case 12 % loglogistic % mu, sigma
+                for i = 1:sim1
+                    Bmtx(i,:) = random('loglogistic',bDist(1,i),bDist(2,i),[1,sim2]);
+                end
+            case 13 % Weibull % A, B
+                for i = 1:sim1
+                    Bmtx(i,:) = random('wbl',bDist(1,i),bDist(2,i),[1,sim2]);
+                end
+            case 14 % Rayleigh % B
+                for i = 1:sim1
+                    Bmtx(i,:) = random('rayl',bDist(1,i),[1,sim2]);
+                end
+            case 15 % Gamma % a, b
+                for i = 1:sim1
+                    Bmtx(i,:) = random('gam',bDist(1,i),bDist(2,i),[1,sim2]);
+                end
+            case 16 % BirnbaumSaunders % beta, gamma
+                for i = 1:sim1
+                    Bmtx(i,:) = random('birnbaumsaunders',bDist(1,i),bDist(2,i),[1,sim2]);
+                end
+            case 17 % Generalized Pareto % k, sigma, theta
+                for i = 1:sim1
+                    Bmtx(i,:) = random('gp',bDist(1,i),bDist(2,i),bDist(3,i),[1,sim2]);
+                end
+            case 18 % InverseGaussian % k, sigma
+                for i = 1:sim1
+                    Bmtx(i,:) = random('inversegaussian',bDist(1,i),bDist(2,i),[1,sim2]);
+                end
+            case 19 % Nakagami % mu, omega
+                for i = 1:sim1
+                    Bmtx(i,:) = random('nakagami',bDist(1,i),bDist(2,i),[1,sim2]);
+                end
+            case 20 % Rician % s, sigma
+                for i = 1:sim1
+                    Bmtx(i,:) = random('rician',bDist(1,i),bDist(2,i),[1,sim2]);
+                end
+            case 21 % Johnson SB % gamma, delta, mi, sigma
+                % Brak funkcji
+            case 22 % Johnson SL % gamma, delta, mi, sigma
+                % Brak funkcji
+            case 31 % Poisson % lambda
+                for i = 1:sim1
+                    Bmtx(i,:) = random('Poisson',bDist(1,i),[1,sim2]);
+                end
+            case 32 % negative binomial % R, P
+                for i = 1:sim1
+                    Bmtx(i,:) = random('nbin',bDist(1,i),bDist(2,i),[1,sim2]);
+                end
+                Bmtx(repmat(tSpike',[1,sim2])) = 0;
         end
-    else
-        fprintf('%*s%*s%*s%*s%*s%*s\n',mCW3(1)+spacing2,stats_out{1,1}, mCW3(2)+spacing2+precision,stats_out{1,2}, mCW3(3)+spacing2+precision,stats_out{1,3}, mCW3(4)+spacing2+precision,stats_out{1,4}, mCW3(5)+spacing2+precision,stats_out{1,5}, mCW3(6)+spacing2+precision,stats_out{1,6})
-        for j = 2:size(stats_out,1)
-            fprintf('%-*s% *.*f% *.*f% *.*f% *.*f% *.*f\n',mCW3(1)+spacing2,stats_out{j,1}, mCW3(2)+spacing2+precision,precision,stats_out{j,2}, mCW3(3)+spacing2+precision,precision,stats_out{j,3}, mCW3(4)+spacing2+precision,precision,stats_out{j,4}, mCW3(5)+spacing2+precision,precision,stats_out{j,5}, mCW3(6)+spacing2+precision,precision,stats_out{j,6})
+        
+        stats1 = [mean(Bmtx(:)) std(Bmtx(:)) median(Bmtx(:)) quantile((Bmtx(:)),0.025) quantile((Bmtx(:)),0.975)];
+        stats2 = std([mean(Bmtx,1); std(Bmtx,[],1); median(Bmtx,1); quantile(Bmtx,0.025,1); quantile(Bmtx,0.975,1)],[],2)';
+        stats31 = quantile([mean(Bmtx,1); std(Bmtx,[],1); median(Bmtx,1); quantile(Bmtx,0.025,1); quantile(Bmtx,0.975,1)],0.025,2)';
+        stats32 = quantile([mean(Bmtx,1); std(Bmtx,[],1); median(Bmtx,1); quantile(Bmtx,0.025,1); quantile(Bmtx,0.975,1)],0.975,2)';
+        
+        stats = [stats1; stats2; stats31; stats32];
+        
+        stats_out(1,2:6) = {'mean','s.d.','median','q0.025','q0.975'};
+        
+        
+        if INPUT.Spike
+            stats = [stats, [mean(pSpike); std(pSpike); quantile(pSpike,0.025); quantile(pSpike,0.0975)]];
+            stats_out(1,7) = {'p.spike'};
+        end
+        
+        stats_out(2:5,1) = {'value','s.e.','lower 95% c.i.','upper 95% c.i.'};
+        stats_out(2:5,2:6+INPUT.Spike) = num2cell(stats);
+        
+        Results.stats = stats;
+        Results.stats_out = stats_out;
+        
+        fprintf('\n\n%s\n','Fitted distribution descriptive statistics:')
+        
+        [~,mCW3] = CellColumnWidth(stats_out); % width and max width of each column
+        if INPUT.Spike
+            fprintf('%*s%*s%*s%*s%*s%*s%*s\n',mCW3(1)+spacing2,stats_out{1,1}, mCW3(2)+spacing2+precision,stats_out{1,2}, mCW3(3)+spacing2+precision,stats_out{1,3}, mCW3(4)+spacing2+precision,stats_out{1,4}, mCW3(5)+spacing2+precision,stats_out{1,5}, mCW3(6)+spacing2+precision,stats_out{1,6}, mCW3(7)+spacing2+precision,stats_out{1,7})
+            for j = 2:size(stats_out,1)
+                fprintf('%-*s% *.*f% *.*f% *.*f% *.*f% *.*f% *.*f\n',mCW3(1)+spacing2,stats_out{j,1}, mCW3(2)+spacing2+precision,precision,stats_out{j,2}, mCW3(3)+spacing2+precision,precision,stats_out{j,3}, mCW3(4)+spacing2+precision,precision,stats_out{j,4}, mCW3(5)+spacing2+precision,precision,stats_out{j,5}, mCW3(6)+spacing2+precision,precision,stats_out{j,6}, mCW3(7)+spacing2+precision,precision,stats_out{j,7})
+            end
+        else
+            fprintf('%*s%*s%*s%*s%*s%*s\n',mCW3(1)+spacing2,stats_out{1,1}, mCW3(2)+spacing2+precision,stats_out{1,2}, mCW3(3)+spacing2+precision,stats_out{1,3}, mCW3(4)+spacing2+precision,stats_out{1,4}, mCW3(5)+spacing2+precision,stats_out{1,5}, mCW3(6)+spacing2+precision,stats_out{1,6})
+            for j = 2:size(stats_out,1)
+                fprintf('%-*s% *.*f% *.*f% *.*f% *.*f% *.*f\n',mCW3(1)+spacing2,stats_out{j,1}, mCW3(2)+spacing2+precision,precision,stats_out{j,2}, mCW3(3)+spacing2+precision,precision,stats_out{j,3}, mCW3(4)+spacing2+precision,precision,stats_out{j,4}, mCW3(5)+spacing2+precision,precision,stats_out{j,5}, mCW3(6)+spacing2+precision,precision,stats_out{j,6})
+            end
         end
     end
-else
-    cprintf(rgb('DarkOrange'), 'WARNING: AVC is not positive semi-definite - aborting simulation of descriptive statistics \n')
 end
 
 
