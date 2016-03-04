@@ -65,8 +65,6 @@ switch dist
             cdf('tLocationScale',bounds(:,1),bDist(:,1),bDist(:,2),bDist(:,3));
         dp(dp==0) = pdf('tLocationScale',bounds_min(dp==0,1),bDist(dp==0,1),bDist(dp==0,2),bDist(dp==0,3));
     case 5 % Uniform % min, max
-        %         save tmp2
-        %         return
         dp = cdf('Uniform',bounds(:,2),bDist(:,1),bDist(:,2)) - ...
             cdf('Uniform',bounds(:,1),bDist(:,1),bDist(:,2));
         dp(dp==0) = pdf('Uniform',bounds_min(dp==0,1),bDist(dp==0,1),bDist(dp==0,2));
@@ -74,7 +72,7 @@ switch dist
         %         save tmp1
         dp = JohnsonCDF(bounds(:,2),bDist(:,1),bDist(:,2),bDist(:,3),bDist(:,4),'SU') - ...
             JohnsonCDF(bounds(:,1),bDist(:,1),bDist(:,2),bDist(:,3),bDist(:,4),'SU');
-        dp(dp==0) = JohnsonPDF(bounds_min(dp==0,1),bDist(:,1),bDist(:,2),bDist(:,3),bDist(:,4),'SU');
+        dp(dp==0) = JohnsonPDF(bounds_min(dp==0,1),bDist(dp==0,1),bDist(dp==0,2),bDist(dp==0,3),bDist(dp==0,4),'SU');
         %         save tmp1
         %         return
         
@@ -131,23 +129,12 @@ switch dist
     case 21 % Johnson SB % gamma, delta>0, mi, sigma>0
         dp = JohnsonCDF(bounds(:,2),bDist(:,1),bDist(:,2),bDist(:,3),bDist(:,4),'SB') - ...
             JohnsonCDF(bounds(:,1),bDist(:,1),bDist(:,2),bDist(:,3),bDist(:,4),'SB');
-        dp(dp==0) = JohnsonPDF(bounds_min(dp==0,1),bDist(:,1),bDist(:,2),bDist(:,3),bDist(:,4),'SB');
-        % p = (1-pSpike).*dp;
-        % p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) = p(bounds(:,1) <= 0 & 0 <= bounds(:,2)) + pSpike(bounds(:,1) <= 0 & 0 <= bounds(:,2));
-        % p(p<=0) = eps; % realmin
-        % f = log(p).*weights;
+        dp(dp==0) = JohnsonPDF(bounds_min(dp==0,1),bDist(dp==0,1),bDist(dp==0,2),bDist(dp==0,3),bDist(dp==0,4),'SB');
     case 22 % Johnson SL % gamma, delta>0, mi, sigma>0
         dp = JohnsonCDF(bounds(:,2),bDist(:,1),bDist(:,2),bDist(:,3),bDist(:,4),'SL') - ...
             JohnsonCDF(bounds(:,1),bDist(:,1),bDist(:,2),bDist(:,3),bDist(:,4),'SL');
-        dp(dp==0) = JohnsonPDF(bounds_min(dp==0,1),bDist(:,1),bDist(:,2),bDist(:,3),bDist(:,4),'SL');
-        %     case x % Burr % Error - Parto distribution fits better
-        %           p = cdf('Burr',bounds,b0(1),b0(2),b0(3));
-        %           f = RealMin*log(max(eps,p(:,2) - p(:,1))) + ~RealMin*log(p(:,2) - p(:,1));
-        %     elseif dist==23 % generalized inverse Gaussian
-        % %         p =
-        %     elseif dist==24 % sinh-arcsinh
-        % %         p =
-        
+        dp(dp==0) = JohnsonPDF(bounds_min(dp==0,1),bDist(dp==0,1),bDist(dp==0,2),bDist(dp==0,3),bDist(dp==0,4),'SL');
+
         % discrete
     case 31 % Poisson % lambda>0
         dp = cdf('Poisson',bounds(:,2),bDist(:,1)) - ...
@@ -163,8 +150,8 @@ end
 p = (1-pSpike).*dp; % scale down to allow for the probability of spike
 I0 = ((bounds(:,1) == 0 & bounds(:,2) == 0) | (bounds(:,1) <= 0 & bounds(:,2) > 0));
 p(I0) = p(I0) + pSpike(I0); % add spike probability to observations with 0 in bounds
-% f = log(p).*weights;
+f = log(p).*weights;
 % f = log(max(p,eps)).*weights;
-f = log(max(p,realmin)).*weights;
+% f = log(max(p,realmin)).*weights;
 
 

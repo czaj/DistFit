@@ -100,8 +100,8 @@ end
 %     INPUT.bounds(:,2) = max(INPUT.bounds,[],2);
 % end
 if dist == 21 && any(INPUT.bounds(:,2) == Inf)
-    cprintf(rgb('DarkOrange'), 'WARNING: Inf upper bounds not consistent with Johnson SB distribution - censoring to maximum finite bound \n')
-    INPUT.bounds(INPUT.bounds(:,2)==Inf,2) = max(INPUT.bounds(isfinite(INPUT.bounds)));
+    cprintf(rgb('DarkOrange'), 'WARNING: Inf upper bounds not consistent with Johnson SB distribution - censoring to maximum finite bound *10\n')
+    INPUT.bounds(INPUT.bounds(:,2)==Inf,2) = max(INPUT.bounds(isfinite(INPUT.bounds)))*10;
     INPUT.bounds(:,1) = min(INPUT.bounds,[],2);
 end
 
@@ -163,8 +163,9 @@ numB = (numDistParam + INPUT.Spike) * (1 + numX);
 
 %% starting values:
 
+
 if exist('b0','var') && ~isempty(b0)
-    b0 = b0(:)';
+    b0 = b0(:);
     if size(b0,1) ~= numB
         cprintf(rgb('DarkOrange'), 'WARNING: Incorrect number of starting values - using midpoint-based estimates as starting values \n')
         b0 = [];
@@ -254,10 +255,9 @@ if ~exist('b0','var') || isempty(b0)
             % b0 = [skewness(midpoint,0),kurtosis(midpoint,0),mean(midpoint),std(midpoint)];
             % pd = f_johnson_fit(midpoint);
             % b0 = pd.coef;
-            b0 = [0,1]; % gamma, delta, mi, sigma
-            % ,min(INPUT.bounds(:)),max(INPUT.bounds(:)) - min(INPUT.bounds(:))
+            b0 = [0,1,min(INPUT.bounds(:))-eps,max(INPUT.bounds(:)) - min(INPUT.bounds(:))+eps]; % gamma, delta, mi, sigma
         case 22 % Johnson SL
-            b0 = [1,1,1]; % gamma, delta, mi, sigma
+            b0 = [0,1,min(INPUT.bounds(:))-eps,max(INPUT.bounds(:)) - min(INPUT.bounds(:))+eps]; % gamma, delta, mi, sigma
             
             % case x % Burr
             % pd = fitdist(midpoint,'Burr','Options',OptimOptFit); % Error - Parto distribution fits better
@@ -370,48 +370,81 @@ end
 switch dist
     
     % unbounded
-    case {0,1,2} % Normal: mu, sigma>=0; Logistic: mu, sigma>=0; % Extreme Value: mu, sigma>=0
-        Aeq = -[zeros(size(INPUT.bounds,1),1), ones(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),INPUT.Spike), ...
+    case {0,1,2,11} % Normal: mu, sigma>=0; Logistic: mu, sigma>=0; % Extreme Value: mu, sigma>=0; Lognormal: mu, sigma>0
+        A = -[zeros(size(INPUT.bounds,1),1), ones(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),INPUT.Spike), ...
             zeros(size(INPUT.bounds,1),numX), INPUT.X, zeros(size(INPUT.bounds,1),numX*INPUT.Spike)];
-        Ceq = zeros(size(INPUT.bounds,1),1);
-
+        C = zeros(size(INPUT.bounds,1),1);
     case 3 % Generalized Extreme Value % k, sigma>0, mu
-        
+        A = -[zeros(size(INPUT.bounds,1),1), ones(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),INPUT.Spike), ...
+            zeros(size(INPUT.bounds,1),numX), INPUT.X, zeros(size(INPUT.bounds,1),numX), zeros(size(INPUT.bounds,1),numX*INPUT.Spike)];
+        C = zeros(size(INPUT.bounds,1),1);
     case 4 % tLocationScale % mu, sigma>0, nu>0
-        
+        A = [zeros(size(INPUT.bounds,1),1), ones(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),INPUT.Spike), ...
+            zeros(size(INPUT.bounds,1),numX), INPUT.X, zeros(size(INPUT.bounds,1),numX), zeros(size(INPUT.bounds,1),numX*INPUT.Spike)];
+        A = -[A; [zeros(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),1), ones(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),INPUT.Spike), ...
+            zeros(size(INPUT.bounds,1),numX), zeros(size(INPUT.bounds,1),numX), INPUT.X, zeros(size(INPUT.bounds,1),numX*INPUT.Spike)]];
+        C = zeros(2*size(INPUT.bounds,1),1);
     case 5 % Uniform % min, max
-    case 6 % Johnson SU % gamma, delta>0, mi, sigma>0
-        
-    case 10 % Exponential % mu>0
-        
-    case 11 % Lognormal % mu, sigma>0
-        
-    case 12 % Loglogistic % mu>0, sigma>0
-        
-    case 13 % Weibull % A>0, b0>0
-        
-    case 14 % Rayleigh % b0>0
-        
-    case 15 % Gamma % a>0, b>0
-        
-    case 16 % BirnbaumSaunders % beta>0, gamma>0
-        
-    case 17 % Generalized Pareto % k, sigma>0, theta
-        
-    case 18 % InverseGaussian % k>0, sigma>0
-        
-    case 19 % Nakagami % mu>=0.5, omega>0
-        
-    case 20 % Rician % s>=0, sigma>0
-        
-    case 21 % Johnson SB % gamma, delta>0, mi, sigma>0
-        
-    case 22 % Johnson SL % gamma, delta>0, mi, sigma>0
-        
-    case 31 % Poisson % lambda>0
-        
+        A = [ones(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),INPUT.Spike), ...
+            INPUT.X, zeros(size(INPUT.bounds,1),numX), zeros(size(INPUT.bounds,1),numX*INPUT.Spike)];
+        A = [A; -[zeros(size(INPUT.bounds,1),1), ones(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),INPUT.Spike), ...
+            zeros(size(INPUT.bounds,1),numX), INPUT.X, zeros(size(INPUT.bounds,1),numX*INPUT.Spike)]];
+        C = [INPUT.bounds(:,1); ...
+            INPUT.bounds(:,2)];
+    case 6 % Johnson SU: gamma, delta>0, mi, sigma>0; 
+        A = [zeros(size(INPUT.bounds,1),1), ones(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),2), zeros(size(INPUT.bounds,1),INPUT.Spike), ...
+            zeros(size(INPUT.bounds,1),numX), INPUT.X, zeros(size(INPUT.bounds,1),numX*2), zeros(size(INPUT.bounds,1),numX*INPUT.Spike)];
+        A = -[A; [zeros(size(INPUT.bounds,1),3), ones(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),INPUT.Spike), ...
+            zeros(size(INPUT.bounds,1),numX*3), INPUT.X, zeros(size(INPUT.bounds,1),numX*INPUT.Spike)]];
+        C = zeros(2*size(INPUT.bounds,1),1);
+    case {10,14,31} % Exponential: mu>0; Rayleigh: b0>0; Poisson: lambda>0
+        A = -[ones(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),INPUT.Spike), ...
+            INPUT.X, zeros(size(INPUT.bounds,1),numX*INPUT.Spike)];
+        C = zeros(size(INPUT.bounds,1),1);
+    case {12,13,15,16,18,20} % Loglogistic: mu>0, sigma>0; Weibull: A>0, b0>0; Gamma: a>0, b>0; BirnbaumSaunders: beta>0, gamma>0; InverseGaussian: k>0, sigma>0; Rician: s>=0, sigma>0
+        A = [ones(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),INPUT.Spike), ...
+            INPUT.X, zeros(size(INPUT.bounds,1),numX), zeros(size(INPUT.bounds,1),numX*INPUT.Spike)];
+        A = -[A; [zeros(size(INPUT.bounds,1),1), ones(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),INPUT.Spike), ...
+            zeros(size(INPUT.bounds,1),numX), INPUT.X, zeros(size(INPUT.bounds,1),numX*INPUT.Spike)]];
+        C = zeros(2*size(INPUT.bounds,1),1);
+    case 17 % Generalized Pareto: k, sigma>0, theta
+        A = -[zeros(size(INPUT.bounds,1),1), ones(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),INPUT.Spike), ...
+            zeros(size(INPUT.bounds,1),numX), INPUT.X, zeros(size(INPUT.bounds,1),numX), zeros(size(INPUT.bounds,1),numX*INPUT.Spike)];
+        C = zeros(size(INPUT.bounds,1),1);
+    case 19 % Nakagami: mu>=0.5, omega>0
+        A = [ones(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),INPUT.Spike), ...
+            INPUT.X, zeros(size(INPUT.bounds,1),numX), zeros(size(INPUT.bounds,1),numX*INPUT.Spike)];
+        A = -[A; [zeros(size(INPUT.bounds,1),1), ones(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),INPUT.Spike), ...
+            zeros(size(INPUT.bounds,1),numX), INPUT.X, zeros(size(INPUT.bounds,1),numX*INPUT.Spike)]];
+        C = [-0.5*ones(size(INPUT.bounds,1),1); zeros(size(INPUT.bounds,1),1)];
+    case 21 % Johnson SB: gamma, delta>0, mi<lbound, x-mi<sigma
+        A = -[zeros(size(INPUT.bounds,1),1), ones(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),2), zeros(size(INPUT.bounds,1),INPUT.Spike), ...
+            zeros(size(INPUT.bounds,1),numX), INPUT.X, zeros(size(INPUT.bounds,1),numX*2), zeros(size(INPUT.bounds,1),numX*INPUT.Spike)];
+        A = [A; [zeros(size(INPUT.bounds,1),2), ones(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),INPUT.Spike), ...
+            zeros(size(INPUT.bounds,1),numX*2), INPUT.X, zeros(size(INPUT.bounds,1),numX), zeros(size(INPUT.bounds,1),numX*INPUT.Spike)]];
+        A = [A; [zeros(size(INPUT.bounds,1),3), -ones(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),INPUT.Spike), ...
+            zeros(size(INPUT.bounds,1),numX*3), -INPUT.X, zeros(size(INPUT.bounds,1),numX*INPUT.Spike)]];
+        C = [zeros(size(INPUT.bounds,1),1);...
+            INPUT.bounds(:,1);...
+            -INPUT.bounds(:,2)+INPUT.bounds(:,1)];
+    case 22 % Johnson SL: gamma, delta>0, mi<lbound, sigma>0
+        A = -[zeros(size(INPUT.bounds,1),1), ones(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),2), zeros(size(INPUT.bounds,1),INPUT.Spike), ...
+            zeros(size(INPUT.bounds,1),numX), INPUT.X, zeros(size(INPUT.bounds,1),numX*2), zeros(size(INPUT.bounds,1),numX*INPUT.Spike)];
+        A = [A; [zeros(size(INPUT.bounds,1),2), ones(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),INPUT.Spike), ...
+            zeros(size(INPUT.bounds,1),numX*2), INPUT.X, zeros(size(INPUT.bounds,1),numX), zeros(size(INPUT.bounds,1),numX*INPUT.Spike)]];
+        A = [A; [zeros(size(INPUT.bounds,1),3), -ones(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),INPUT.Spike), ...
+            zeros(size(INPUT.bounds,1),numX*3), -INPUT.X, zeros(size(INPUT.bounds,1),numX*INPUT.Spike)]];
+        C = [zeros(size(INPUT.bounds,1),1);...
+            INPUT.bounds(:,1);...
+            zeros(size(INPUT.bounds,1),1)];
     case 32 % Negative Binomial % R>0 and R is an integer, 0<P<1
-        
+        A = [ones(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),INPUT.Spike), ...
+            INPUT.X, zeros(size(INPUT.bounds,1),numX), zeros(size(INPUT.bounds,1),numX*INPUT.Spike)];
+        A = -[A; [zeros(size(INPUT.bounds,1),1), ones(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),INPUT.Spike), ...
+            zeros(size(INPUT.bounds,1),numX), INPUT.X, zeros(size(INPUT.bounds,1),numX*INPUT.Spike)]];
+        A = [A; [zeros(size(INPUT.bounds,1),1), ones(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),INPUT.Spike), ...
+            zeros(size(INPUT.bounds,1),numX), INPUT.X, zeros(size(INPUT.bounds,1),numX*INPUT.Spike)]];
+        C = [zeros(2*size(INPUT.bounds,1),1);ones(size(INPUT.bounds,1),1)];
 end
 
 
@@ -421,7 +454,7 @@ end
 
 % [Results.beta, Results.fval, Results.flag, Results.out, Results.grad, Results.hess] = fminunc(@(b) -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT, dist,INPUT.Spike,b)), b0, INPUT.OptimOpt);
 
-[Results.beta, Results.fval, Results.flag, Results.out, Results.lambda, Results.grad, Results.hess] = fmincon(@(b) -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT, dist,INPUT.Spike,b)), b0,Aeq,Ceq,[],[],[],[],[],INPUT.OptimOpt);
+[Results.beta, Results.fval, Results.flag, Results.out, Results.lambda, Results.grad, Results.hess] = fmincon(@(b) -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT, dist,INPUT.Spike,b)), b0,A,C,[],[],[],[],[],INPUT.OptimOpt);
 
 
 %% generate output
@@ -878,8 +911,10 @@ if INPUT.SimStats
                 for i = 1:sim1
                     Bmtx(i,:) = random('nbin',bDist(1,i),bDist(2,i),[1,sim2]);
                 end
-                Bmtx(repmat(tSpike',[1,sim2])) = 0;
         end
+        
+        %         save out3;
+        Bmtx(repmat(tSpike',[1,sim2])) = 0;
         
         stats1 = [mean(Bmtx(:)) std(Bmtx(:)) median(Bmtx(:)) quantile((Bmtx(:)),0.025) quantile((Bmtx(:)),0.975)];
         stats2 = std([mean(Bmtx,1); std(Bmtx,[],1); median(Bmtx,1); quantile(Bmtx,0.025,1); quantile(Bmtx,0.975,1)],[],2)';
