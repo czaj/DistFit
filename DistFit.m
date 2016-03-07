@@ -185,8 +185,8 @@ midpoint(~isfinite(midpoint)) = bounds_tmp(~isfinite(midpoint),1);
 
 if ~exist('b0','var') || isempty(b0)
     OptimOptFit = statset('gevfit');
-    OptimOptFit.MaxFunEvals = 1e12;
-    OptimOptFit.MaxIter = 1e6;
+    OptimOptFit.MaxFunEvals = 1e6;
+    OptimOptFit.MaxIter = 1e3;
     warning('off','stats:gevfit:ConvergedToBoundary')
     warning('off','stats:mlecov:NonPosDefHessian')
     % OptimOptFit.Display = 'iter';
@@ -257,8 +257,8 @@ if ~exist('b0','var') || isempty(b0)
             % b0 = pd.coef;
             b0 = [0,1,min(INPUT.bounds(:))-eps,max(INPUT.bounds(:)) - min(INPUT.bounds(:))+eps]; % gamma, delta, mi, sigma
         case 22 % Johnson SL
-            b0 = [0,1,min(INPUT.bounds(:))-eps,max(INPUT.bounds(:)) - min(INPUT.bounds(:))+eps]; % gamma, delta, mi, sigma
-            
+            b0 = [1,2,min(INPUT.bounds(:))-eps,max(INPUT.bounds(isfinite(INPUT.bounds(:)))) - min(INPUT.bounds(:))+eps]; % gamma, delta, mi, sigma
+%             b0 = [0.5,0.5,0,50];
             % case x % Burr
             % pd = fitdist(midpoint,'Burr','Options',OptimOptFit); % Error - Parto distribution fits better
             % b0 = pd.ParameterValues; %
@@ -298,8 +298,8 @@ end
 if ~isfield(INPUT,'OptimOpt') || isempty(INPUT.OptimOpt)
     INPUT.OptimOpt = optimoptions('fmincon');
     INPUT.OptimOpt.Algorithm = 'interior-point'; %'sqp'; 'active-set'; 'trust-region-reflective';
-    INPUT.OptimOpt.MaxFunEvals = 1e6; % Maximum number of function evaluations allowed (1000)
-    INPUT.OptimOpt.MaxIter = 1e3; % Maximum number of iterations allowed (500)
+    INPUT.OptimOpt.MaxFunEvals = 1e9; % Maximum number of function evaluations allowed (1000)
+    INPUT.OptimOpt.MaxIter = 1e6; % Maximum number of iterations allowed (500)
     INPUT.OptimOpt.GradObj = 'off';
     INPUT.OptimOpt.FinDiffType = 'central'; % ('forward')
     INPUT.OptimOpt.TolFun = 1e-12;
@@ -437,6 +437,8 @@ switch dist
         C = [zeros(size(INPUT.bounds,1),1);...
             INPUT.bounds(:,1);...
             zeros(size(INPUT.bounds,1),1)];
+% A = [];
+% C = [];
     case 32 % Negative Binomial % R>0 and R is an integer, 0<P<1
         A = [ones(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),INPUT.Spike), ...
             INPUT.X, zeros(size(INPUT.bounds,1),numX), zeros(size(INPUT.bounds,1),numX*INPUT.Spike)];
@@ -454,6 +456,8 @@ end
 
 % [Results.beta, Results.fval, Results.flag, Results.out, Results.grad, Results.hess] = fminunc(@(b) -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT, dist,INPUT.Spike,b)), b0, INPUT.OptimOpt);
 
+save tmp1
+% return
 [Results.beta, Results.fval, Results.flag, Results.out, Results.lambda, Results.grad, Results.hess] = fmincon(@(b) -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT, dist,INPUT.Spike,b)), b0,A,C,[],[],[],[],[],INPUT.OptimOpt);
 
 
@@ -791,8 +795,8 @@ if INPUT.SimStats
         cprintf(rgb('DarkOrange'), 'WARNING: AVC is not positive semi-definite - aborting simulation of descriptive statistics \n')
     else
         
-        sim1 = 1e3;
-        sim2 = 1e3;
+        sim1 = 1e4;
+        sim2 = 1e4;
         
         Bi = mvnrnd(Results.beta,Results.ihess,sim1)'; % draw parameter distributions taking uncertainty (standard errors) into account
         
@@ -916,18 +920,17 @@ if INPUT.SimStats
         %         save out3;
         Bmtx(repmat(tSpike',[1,sim2])) = 0;
         
-        stats1 = [mean(Bmtx(:)) std(Bmtx(:)) median(Bmtx(:)) quantile((Bmtx(:)),0.025) quantile((Bmtx(:)),0.975)];
-        stats2 = std([mean(Bmtx,1); std(Bmtx,[],1); median(Bmtx,1); quantile(Bmtx,0.025,1); quantile(Bmtx,0.975,1)],[],2)';
-        stats31 = quantile([mean(Bmtx,1); std(Bmtx,[],1); median(Bmtx,1); quantile(Bmtx,0.025,1); quantile(Bmtx,0.975,1)],0.025,2)';
-        stats32 = quantile([mean(Bmtx,1); std(Bmtx,[],1); median(Bmtx,1); quantile(Bmtx,0.025,1); quantile(Bmtx,0.975,1)],0.975,2)';
+        stats1 = [nanmean(Bmtx(:)) nanstd(Bmtx(:)) nanmedian(Bmtx(:)) quantile((Bmtx(:)),0.025) quantile((Bmtx(:)),0.975)];
+        stats2 = nanstd([nanmean(Bmtx,1); nanstd(Bmtx,[],1); nanmedian(Bmtx,1); quantile(Bmtx,0.025,1); quantile(Bmtx,0.975,1)],[],2)';
+        stats31 = quantile([nanmean(Bmtx,1); nanstd(Bmtx,[],1); nanmedian(Bmtx,1); quantile(Bmtx,0.025,1); quantile(Bmtx,0.975,1)],0.025,2)';
+        stats32 = quantile([nanmean(Bmtx,1); nanstd(Bmtx,[],1); nanmedian(Bmtx,1); quantile(Bmtx,0.025,1); quantile(Bmtx,0.975,1)],0.975,2)';
         
         stats = [stats1; stats2; stats31; stats32];
         
         stats_out(1,2:6) = {'mean','s.d.','median','q0.025','q0.975'};
-        
-        
+               
         if INPUT.Spike
-            stats = [stats, [mean(pSpike); std(pSpike); quantile(pSpike,0.025); quantile(pSpike,0.0975)]];
+            stats = [stats, [mean(pSpike); std(pSpike); quantile(pSpike,0.025); quantile(pSpike,0.975)]];
             stats_out(1,7) = {'p.spike'};
         end
         
@@ -935,7 +938,7 @@ if INPUT.SimStats
         stats_out(2:5,2:6+INPUT.Spike) = num2cell(stats);
         
         Results.stats = stats;
-        Results.stats_out = stats_out;
+        Results.stats_out = stats_out;       
         
         fprintf('\n\n%s\n','Fitted distribution descriptive statistics:')
         
@@ -951,6 +954,15 @@ if INPUT.SimStats
                 fprintf('%-*s% *.*f% *.*f% *.*f% *.*f% *.*f\n',mCW3(1)+spacing2,stats_out{j,1}, mCW3(2)+spacing2+precision,precision,stats_out{j,2}, mCW3(3)+spacing2+precision,precision,stats_out{j,3}, mCW3(4)+spacing2+precision,precision,stats_out{j,4}, mCW3(5)+spacing2+precision,precision,stats_out{j,5}, mCW3(6)+spacing2+precision,precision,stats_out{j,6})
             end
         end
+        
+%         if isfield(INPUT,'PlotDist') && ~isempty(INPUT.PlotDist) && INPUT.PlotDist == 1
+%             hist(Bmtx(:),750)
+%             minBound = min([INPUT.bounds(isfinite(INPUT.bounds(:,1)),1);0]);
+%             maxBound = max([INPUT.bounds(isfinite(INPUT.bounds(:,2)),1);INPUT.bounds(isfinite(INPUT.bounds(:,1)),1)]);
+%             set(gca,'XLim', [minBound,maxBound])
+%             set(gca,'YTick', [])
+%         end
+        
     end
 end
 

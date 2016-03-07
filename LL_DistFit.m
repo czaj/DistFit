@@ -5,7 +5,7 @@ function f = LL_DistFit(bounds, X, weights, dist, Spike, b0)
 
 b0 = b0(:);
 
-numDistParam = 1*any(dist == [10,14,31]) + 2*any(dist == [0:2,5,11:13,15,16,18:21,32]) + 3*any(dist == [3,4,17,22]) + 4*any(dist == 6);
+numDistParam = 1*any(dist == [10,14,31]) + 2*any(dist == [0:2,5,11:13,15,16,18:20,32]) + 3*any(dist == [3,4,17]) + 4*any(dist == [6,21:22]);
 
 numX = size(X,2);
 
@@ -21,7 +21,7 @@ if Spike
         bCovSpike = b0(numDistParam*(1+numX)+1+1:(numDistParam+1)*(1+numX));
         pSpike = normcdf(bSpike+X*bCovSpike);
     else % Spike only
-        bDist = repmat(b0(1:numDistParam)',[size(bounds,1),numDistParam]); % distribution parameters
+        bDist = repmat(b0(1:numDistParam)',[size(bounds,1),1]); % distribution parameters
         pSpike = repmat(normcdf(bSpike),[size(bounds,1),1]);
     end
 else
@@ -33,7 +33,7 @@ else
             bDist(:,i) = bDist0(i) + X*bCovDist(numX*(i-1)+1:numX*i);
         end
     else % baseline distribution only
-        bDist = repmat(b0(1:numDistParam)',[size(bounds,1),numDistParam]); % distribution parameters
+        bDist = repmat(b0(1:numDistParam)',[size(bounds,1),1]); % distribution parameters
     end
     pSpike(size(bounds,1),1) = 0;
 end
