@@ -456,7 +456,7 @@ end
 
 % [Results.beta, Results.fval, Results.flag, Results.out, Results.grad, Results.hess] = fminunc(@(b) -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT, dist,INPUT.Spike,b)), b0, INPUT.OptimOpt);
 
-save tmp1
+% save tmp1
 % return
 [Results.beta, Results.fval, Results.flag, Results.out, Results.lambda, Results.grad, Results.hess] = fmincon(@(b) -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT, dist,INPUT.Spike,b)), b0,A,C,[],[],[],[],[],INPUT.OptimOpt);
 
@@ -669,10 +669,12 @@ end
 % (wszystko razem z s.e. i gwiazdkami)
 
 R_out(numX+6,1) = {'Model characteristics:'};
-R_out(numX+7:numX+10,1) = {'LL';'AIC/n';'n';'k'};
+R_out(numX+7:numX+10,1) = {'LL';'AICc/n';'n';'k'};
 R_out(numX+7:numX+10,2) = num2cell([Results.fval; ((2*numB-2*Results.fval) + 2*numB*(numB+1)/(size(INPUT.bounds,1)-numB-1))/size(INPUT.bounds,1); size(INPUT.bounds,1); numB]);
 
 Results.R_out = R_out;
+Results.AIC = (2*numB-2*Results.fval)/size(INPUT.bounds,1);
+Results.AICc = ((2*numB-2*Results.fval) + 2*numB*(numB+1)/(size(INPUT.bounds,1)-numB-1))/size(INPUT.bounds,1);
 
 
 %% display the results
@@ -795,8 +797,8 @@ if INPUT.SimStats
         cprintf(rgb('DarkOrange'), 'WARNING: AVC is not positive semi-definite - aborting simulation of descriptive statistics \n')
     else
         
-        sim1 = 1e4;
-        sim2 = 1e4;
+        sim1 = 1e3;
+        sim2 = 1e3;
         
         Bi = mvnrnd(Results.beta,Results.ihess,sim1)'; % draw parameter distributions taking uncertainty (standard errors) into account
         
