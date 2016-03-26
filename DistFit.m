@@ -156,7 +156,8 @@ if sum(INPUT.WT) ~= size(INPUT.bounds,1)
     INPUT.WT = INPUT.WT - mean(INPUT.WT) + 1;
 end
 
-numDistParam = 1*any(dist == [10,14,31]) + 2*any(dist == [0:2,5,11:13,15,16,18:21,32]) + 3*any(dist == [3,4,17,22]) + 4*any(dist == [6]);
+numDistParam = 1*any(dist == [10,14,31]) + 2*any(dist == [0:2,5,11:13,15,16,18:20,32]) + 3*any(dist == [3,4,17]) + 4*any(dist == [6,21:22]);
+
 numX = size(INPUT.X,2);
 numB = (numDistParam + INPUT.Spike) * (1 + numX);
 
@@ -428,6 +429,7 @@ switch dist
             INPUT.bounds(:,1);...
             -INPUT.bounds(:,2)+INPUT.bounds(:,1)];
     case 22 % Johnson SL: gamma, delta>0, mi<lbound, sigma>0
+%         save tmp1
         A = -[zeros(size(INPUT.bounds,1),1), ones(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),2), zeros(size(INPUT.bounds,1),INPUT.Spike), ...
             zeros(size(INPUT.bounds,1),numX), INPUT.X, zeros(size(INPUT.bounds,1),numX*2), zeros(size(INPUT.bounds,1),numX*INPUT.Spike)];
         A = [A; [zeros(size(INPUT.bounds,1),2), ones(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),INPUT.Spike), ...
@@ -923,9 +925,9 @@ if INPUT.SimStats
         Bmtx(repmat(tSpike',[1,sim2])) = 0;
         
         stats1 = [nanmean(Bmtx(:)) nanstd(Bmtx(:)) nanmedian(Bmtx(:)) quantile((Bmtx(:)),0.025) quantile((Bmtx(:)),0.975)];
-        stats2 = nanstd([nanmean(Bmtx,1); nanstd(Bmtx,[],1); nanmedian(Bmtx,1); quantile(Bmtx,0.025,1); quantile(Bmtx,0.975,1)],[],2)';
-        stats31 = quantile([nanmean(Bmtx,1); nanstd(Bmtx,[],1); nanmedian(Bmtx,1); quantile(Bmtx,0.025,1); quantile(Bmtx,0.975,1)],0.025,2)';
-        stats32 = quantile([nanmean(Bmtx,1); nanstd(Bmtx,[],1); nanmedian(Bmtx,1); quantile(Bmtx,0.025,1); quantile(Bmtx,0.975,1)],0.975,2)';
+        stats2 = nanstd([nanmean(Bmtx,2), nanstd(Bmtx,[],2), nanmedian(Bmtx,2), quantile(Bmtx,0.025,2), quantile(Bmtx,0.975,2)],[],1);
+        stats31 = quantile([nanmean(Bmtx,2), nanstd(Bmtx,[],2), nanmedian(Bmtx,2), quantile(Bmtx,0.025,2), quantile(Bmtx,0.975,2)],0.025,1);
+        stats32 = quantile([nanmean(Bmtx,2), nanstd(Bmtx,[],2), nanmedian(Bmtx,2), quantile(Bmtx,0.025,2), quantile(Bmtx,0.975,2)],0.975,1);
         
         stats = [stats1; stats2; stats31; stats32];
         
