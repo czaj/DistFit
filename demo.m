@@ -64,6 +64,8 @@ for i = 1:size(Distributions,1);
     LL(i,1:2) = {Distributions{i,2}, Results.(Distributions{i,2}).fval}; %#ok<SAGROW>
 end
 
+for i = 1:size(Distributions,1);
+    
 % If the Excel file with the same name exists, its first worksheet will
 % be cleared.
 if exist(fullfile(pwd,['DistFit',Distributions{i,2},'.xls'])) == 2;
@@ -97,6 +99,7 @@ ActiveWorksheetRange.NumberFormat = '0,0000'; % If Excel uses dots as decimal pl
 Workbook.Save
 Workbook.Close
 Excel.Quit
+end
 
 
 % col = 1+4*(1*any(i == [10,14,31]) + 2*any(i == [0:2,5,11:13,15,16,18:21,32]) + 3*any(i == [3,4,17,22]) + 4*any(i == [6]))+4*INPUT.Spike;
