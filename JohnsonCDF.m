@@ -12,25 +12,25 @@ if isscalar(gamma)
     gamma = repmat(gamma,size(x,1),1);
 end
 if isvector(gamma) && size(gamma,1) ~= size(x,1)
-    error('The lenght of the vector of Johnson parameter gamma does not match the number of elements in x')
+    error('The length of the vector of the Johnson parameter gamma does not match the number of elements in x')
 end
 if isscalar(delta)
     delta = repmat(delta,size(x,1),1);
 end
 if isvector(delta) && size(delta,1) ~= size(x,1)
-    error('The lenght of the vector of Johnson parameter delta does not match the number of elements in x')
+    error('The length of the vector of the Johnson parameter delta does not match the number of elements in x')
 end
 if isscalar(mi)
     mi = repmat(mi,size(x,1),1);
 end
 if isvector(mi) && size(mi,1) ~= size(x,1)
-    error('The lenght of the vector of Johnson parameter mi does not match the number of elements in x')
+    error('The length of the vector of the Johnson parameter mi does not match the number of elements in x')
 end
 if isscalar(sigma)
     sigma = repmat(sigma,size(x,1),1);
 end
 if isvector(sigma) && size(sigma,1) ~= size(x,1)
-    error('The lenght of the vector of Johnson parameter sigma does not match the number of elements in x')
+    error('The length of the vector of the Johnson parameter sigma does not match the number of elements in x')
 end
 
 switch type
@@ -50,5 +50,5 @@ switch type
         p(x >=  mi + sigma) = 1;    
 %         p(x <= mi) = 0;
    otherwise
-      error('Unknown distribution type');
+      error('Unknown distribution type. Possible options: SU, SL, SB');
 end
