@@ -298,7 +298,11 @@ end
 
 if ~isfield(INPUT,'OptimOpt') || isempty(INPUT.OptimOpt)
     INPUT.OptimOpt = optimoptions('fmincon');
-    INPUT.OptimOpt.Algorithm = 'interior-point'; %'sqp'; 'active-set'; 'trust-region-reflective';
+    if any(dist == [21,22])
+        INPUT.OptimOpt.Algorithm = 'sqp';%'interior-point'; %'sqp'; 'active-set'; 'trust-region-reflective';
+    else
+        INPUT.OptimOpt.Algorithm = 'interior-point'; %'sqp'; 'active-set'; 'trust-region-reflective';
+    end
     INPUT.OptimOpt.MaxFunEvals = 1e9; % Maximum number of function evaluations allowed (1000)
     INPUT.OptimOpt.MaxIter = 1e6; % Maximum number of iterations allowed (500)
     INPUT.OptimOpt.GradObj = 'off';
