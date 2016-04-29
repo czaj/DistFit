@@ -102,7 +102,7 @@ end
 if dist == 21 && any(INPUT.bounds(:,2) == Inf)
     cprintf(rgb('DarkOrange'), 'WARNING: Inf upper bounds not consistent with Johnson SB distribution - censoring to maximum finite bound *10\n')
     INPUT.bounds(INPUT.bounds(:,2)==Inf,2) = max(INPUT.bounds(isfinite(INPUT.bounds)))*10;
-    INPUT.bounds(:,1) = min(INPUT.bounds,[],2);
+%    INPUT.bounds(:,1) = min(INPUT.bounds,[],2);
 end
 
 
@@ -669,10 +669,6 @@ if numX > 0
         R_out(5:numX+4,1+4*numDistParam+1:1+4*numDistParam+4) = [betaX(:,numDistParam+1),starsX(:,numDistParam+1),stdX(:,numDistParam+1),pvX(:,numDistParam+1)];
     end
 end
-
-% tu powinny byæ jeszcze wysymulowane:
-% œrednia rozk³adu, s.d. rozk³adu, 95% przedzia³ ufnoœci i prawdopodobieñstwo spike
-% (wszystko razem z s.e. i gwiazdkami)
 
 R_out(numX+6,1) = {'Model characteristics:'};
 R_out(numX+7:numX+10,1) = {'LL';'AICc/n';'n';'k'};
