@@ -39,7 +39,9 @@ switch type
 	case 'SL' % semi-bounded
         p = zeros(size(x));
         ind1 = (x > mi) & (x <= mi+sigma);
-        p(ind1) = 0.5.*erfc(-(gamma(ind1)+delta(ind1).*log((x(ind1)-mi(ind1))./sigma(ind1)))./(2^0.5));
+        if sum(ind1) > 0
+            p(ind1) = 0.5.*erfc(-(gamma(ind1)+delta(ind1).*log((x(ind1)-mi(ind1))./sigma(ind1)))./(2^0.5));
+        end
         ind2 = (x > mi + sigma) & (x < Inf);
         p(ind2) = 0.5.*(1+erf((gamma(ind2)+delta(ind2).*log((x(ind2)-mi(ind2))./sigma(ind2)))./(2^0.5)));
         p(x == Inf) = 1; 

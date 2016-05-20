@@ -80,7 +80,7 @@ end
 % Czy mog?aby? sprawdzi?, czy osobno trzeba rozpatrywa? przypadek ujemnych warto?ci i niedodatnich warto?ci - a je?li tak to rozdzieli? te 2 przypadki?
 % Spike troch? to zmienia, bo jak jest spike w zerze to nawet rozk?ady, które wymagaj? dodatnich warto?ci a która? jest równa 0 to i tak jest ok.
 
-if any(dist == [10:21,31:32]) && (any(INPUT.bounds(:,2) <= 0) || (INPUT.Spike && any(INPUT.bounds(:,2) < 0)))
+if any(dist == [10:21,31:32]) && (~INPUT.Spike && any(INPUT.bounds(:,2) <= 0) || (INPUT.Spike && any(INPUT.bounds(:,2) < 0)))
     cprintf(rgb('DarkOrange'), 'WARNING: Data contains observations not consistent with the distribution type (negative) \n')
 end
 
@@ -100,8 +100,13 @@ end
 %     INPUT.bounds(:,2) = max(INPUT.bounds,[],2);
 % end
 if dist == 21 && any(INPUT.bounds(:,2) == Inf)
-    cprintf(rgb('DarkOrange'), 'WARNING: Inf upper bounds not consistent with Johnson SB distribution - censoring to maximum finite bound *10\n')
-    INPUT.bounds(INPUT.bounds(:,2)==Inf,2) = max(INPUT.bounds(isfinite(INPUT.bounds)))*10;
+    cprintf(rgb('DarkOrange'), 'WARNING: Inf upper bounds not consistent with Johnson SB distribution - censoring to maximum finite bound\n')
+    INPUT.bounds(INPUT.bounds(:,2)==Inf,2) = max(INPUT.bounds(isfinite(INPUT.bounds)));
+%    INPUT.bounds(:,1) = min(INPUT.bounds,[],2);
+end
+if dist == 5 && any(INPUT.bounds(:,2) == Inf)
+    cprintf(rgb('DarkOrange'), 'WARNING: Inf upper bounds not consistent with Uniform distribution - censoring to maximum finite bound\n')
+    INPUT.bounds(INPUT.bounds(:,2)==Inf,2) = max(INPUT.bounds(isfinite(INPUT.bounds)));
 %    INPUT.bounds(:,1) = min(INPUT.bounds,[],2);
 end
 
@@ -466,6 +471,7 @@ end
 % return
 [Results.beta, Results.fval, Results.flag, Results.out, Results.lambda, Results.grad, Results.hess] = fmincon(@(b) -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT, dist,INPUT.Spike,b)), b0,A,C,[],[],[],[],[],INPUT.OptimOpt);
 
+% -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT, dist,INPUT.Spike,b0))
 
 %% generate output
 

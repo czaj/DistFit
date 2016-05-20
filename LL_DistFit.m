@@ -1,6 +1,6 @@
 function f = LL_DistFit(bounds, X, weights, dist, Spike, b0)
 
-% save CDF_WTP_tmp
+save CDF_WTP_tmp
 % return
 
 b0 = b0(:);
@@ -39,7 +39,7 @@ else
 end
 
 [~,I] = min(abs(bounds),[],2);
-bounds_min = bounds(sub2ind(size(bounds),(1:size(bounds,1)).',I)); % lower of the absolute value of bounds
+bounds_min = bounds(sub2ind(size(bounds),(1:size(bounds,1)).',I)); % lower of the absolute value of bounds  
 
 switch dist
     
@@ -134,7 +134,7 @@ switch dist
         dp = JohnsonCDF(bounds(:,2),bDist(:,1),bDist(:,2),bDist(:,3),bDist(:,4),'SL') - ...
             JohnsonCDF(bounds(:,1),bDist(:,1),bDist(:,2),bDist(:,3),bDist(:,4),'SL');
         dp(dp==0) = JohnsonPDF(bounds_min(dp==0,1),bDist(dp==0,1),bDist(dp==0,2),bDist(dp==0,3),bDist(dp==0,4),'SL');
-
+        
         % discrete
     case 31 % Poisson % lambda>0
         dp = cdf('Poisson',bounds(:,2),bDist(:,1)) - ...
@@ -143,15 +143,16 @@ switch dist
     case 32 % Negative Binomial % R>0 and R is an integer, 0<P<1
         dp = cdf('Negative Binomial',bounds(:,2),bDist(:,1),bDist(:,2)) - ...
             cdf('Negative Binomial',bounds(:,1),bDist(:,1),bDist(:,2));
-        dp(dp==0) = pdf('Negative Binomial',bounds_min(dp==0,1),bDist(dp==0,1),bDist(dp==0,2));
-        
+        dp(dp==0) = pdf('Negative Binomial',bounds_min(dp==0,1),bDist(dp==0,1),bDist(dp==0,2));       
 end
+
+dp(dp == Inf) = 1 - eps;
 
 p = (1-pSpike).*dp; % scale down to allow for the probability of spike
 I0 = ((bounds(:,1) == 0 & bounds(:,2) == 0) | (bounds(:,1) <= 0 & bounds(:,2) > 0));
 p(I0) = p(I0) + pSpike(I0); % add spike probability to observations with 0 in bounds
-f = log(p).*weights;
-% f = log(max(p,eps)).*weights;
+% f = log(p).*weights;
+f = log(max(p,eps)).*weights;
 % f = log(max(p,realmin)).*weights;
 
 
