@@ -1,6 +1,6 @@
 function f = LL_DistFit(bounds, X, weights, dist, Spike, b0)
 
-save CDF_WTP_tmp
+% save CDF_WTP_tmp
 % return
 
 b0 = b0(:);
@@ -146,13 +146,13 @@ switch dist
         dp(dp==0) = pdf('Negative Binomial',bounds_min(dp==0,1),bDist(dp==0,1),bDist(dp==0,2));       
 end
 
-dp(dp == Inf) = 1 - eps;
+% dp(dp == Inf) = 1 - eps;
 
 p = (1-pSpike).*dp; % scale down to allow for the probability of spike
 I0 = ((bounds(:,1) == 0 & bounds(:,2) == 0) | (bounds(:,1) <= 0 & bounds(:,2) > 0));
 p(I0) = p(I0) + pSpike(I0); % add spike probability to observations with 0 in bounds
-% f = log(p).*weights;
-f = log(max(p,eps)).*weights;
+f = log(p).*weights;
+% f = log(max(p,eps)).*weights;
 % f = log(max(p,realmin)).*weights;
 
 

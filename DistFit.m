@@ -49,7 +49,7 @@ if ~islogical(INPUT.SimStats)
     end
 end
 if ~isfield(INPUT,'HessEstFix') || isempty(INPUT.HessEstFix)
-    INPUT.HessEstFix = 2;
+    INPUT.HessEstFix = 3;
 elseif all(INPUT.HessEstFix ~= 0:3)
     error('Incorrect INPUT.HessEstFix setting - available options are: 0 - retained from optimization, 1 - BHHH based, 2 - numerical high-precision Jacobian based, 3 - numerical Hessian based')
 end
@@ -282,8 +282,7 @@ if ~exist('b0','var') || isempty(b0)
             b0 = pd.ParameterValues; % R, P
     end
     
-    b0 = [b0 pSpike zeros(1,numX*(numDistParam + INPUT.Spike))];
-    
+    b0 = [b0 pSpike zeros(1,numX*(numDistParam + INPUT.Spike))];    
 end
 
 
@@ -303,13 +302,29 @@ end
 
 if ~isfield(INPUT,'OptimOpt') || isempty(INPUT.OptimOpt)
     INPUT.OptimOpt = optimoptions('fmincon');
-    if any(dist == [21,22])
-        INPUT.OptimOpt.Algorithm = 'sqp';%'interior-point'; %'sqp'; 'active-set'; 'trust-region-reflective';
+    if isfield(INPUT,'Algorithm') && ~isempty(INPUT.Algorithm) && any(strfind(['interior-point','sqp','active-set','trust-region-reflective','search'],INPUT.Algorithm))
+        if isequal(INPUT.Algorithm,'interior-point')
+            INPUT.OptimOpt.Algorithm = 'interior-point';
+        elseif isequal(INPUT.Algorithm,'sqp')
+            INPUT.OptimOpt.Algorithm = 'sqp';
+        elseif isequal(INPUT.Algorithm,'active-set')
+            INPUT.OptimOpt.Algorithm = 'active-set';
+        elseif isequal(INPUT.Algorithm,'trust-region-reflective')
+            INPUT.OptimOpt.Algorithm = 'trust-region-reflective';
+        elseif isequal(INPUT.Algorithm,'search')
+            options_tmp = optimset('Display','iter','MaxFunEvals',1e100,'MaxIter',1e4,'TolFun',1e-12,'TolX',1e-12);
+        else
+            error('Incorrectly specified optimization algorithm'); 
+        end
     else
-        INPUT.OptimOpt.Algorithm = 'interior-point'; %'sqp'; 'active-set'; 'trust-region-reflective';
-    end
-    INPUT.OptimOpt.MaxFunEvals = 1e9; % Maximum number of function evaluations allowed (1000)
-    INPUT.OptimOpt.MaxIter = 1e6; % Maximum number of iterations allowed (500)
+        if any(dist == [21,22])
+            INPUT.OptimOpt.Algorithm = 'sqp';%'interior-point'; %'sqp'; 'active-set'; 'trust-region-reflective';
+        else
+            INPUT.OptimOpt.Algorithm = 'interior-point'; %'sqp'; 'active-set'; 'trust-region-reflective';
+        end
+    end    
+    INPUT.OptimOpt.MaxFunEvals = 1e12; % Maximum number of function evaluations allowed (1000)
+    INPUT.OptimOpt.MaxIter = 1e4; % Maximum number of iterations allowed (500)
     INPUT.OptimOpt.GradObj = 'off';
     INPUT.OptimOpt.FinDiffType = 'central'; % ('forward')
     INPUT.OptimOpt.TolFun = 1e-12;
@@ -469,7 +484,17 @@ end
 
 % save tmp1
 % return
-[Results.beta, Results.fval, Results.flag, Results.out, Results.lambda, Results.grad, Results.hess] = fmincon(@(b) -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT, dist,INPUT.Spike,b)), b0,A,C,[],[],[],[],[],INPUT.OptimOpt);
+ 
+
+if  isfield(INPUT,'Algorithm') && ~isempty(INPUT.Algorithm) && isequal(INPUT.Algorithm,'search')
+
+    [Results.beta, Results.fval,Results.flag,Results.out] = fminsearch(@(b) -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT, dist,INPUT.Spike,b)), b0,options_tmp);
+
+else
+    
+    [Results.beta, Results.fval, Results.flag, Results.out, Results.lambda, Results.grad, Results.hess] = fmincon(@(b) -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT, dist,INPUT.Spike,b)), b0,A,C,[],[],[],[],[],INPUT.OptimOpt);
+
+end
 
 % -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT, dist,INPUT.Spike,b0))
 
@@ -480,25 +505,47 @@ end
 
 Results.beta = Results.beta(:);
 Results.fval = -Results.fval;
-if INPUT.HessEstFix == 0
+
+if INPUT.HessEstFix == 3
+    Results.hess = hessian(@(B) -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.Spike,B)),Results.beta);
     Results.ihess = inv(Results.hess);
-elseif INPUT.HessEstFix == 1
-    Results.f = LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.Spike,Results.beta);
-    Results.jacobian1 = numdiff(@(B) LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.Spike,B),Results.f,Results.beta,isequal(INPUT.OptimOpt.FinDiffType,'central'));
-    Results.hess1 = Results.jacobian1'*Results.jacobian1;
-    Results.ihess = inv(Results.hess1);
-elseif INPUT.HessEstFix == 2
-    Results.jacobian2 = jacobianest(@(B) LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.Spike,B),Results.beta);
-    Results.hess2 = Results.jacobian2'*Results.jacobian2;
-    Results.ihess = inv(Results.hess2);
-elseif INPUT.HessEstFix == 3
-    Results.hess3 = hessian(@(B) -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.Spike,B)),Results.beta);
-    Results.ihess = inv(Results.hess3);
+    [~,err] = cholcov(Results.ihess);
+    if err ~= 0
+        cprintf(rgb('DarkOrange'), 'WARNING: AVC is not positive semi-definite - trying a different Hessian approximation method \n')
+        INPUT.HessEstFix = 2;
+    end
 end
 
-[~,err] = cholcov(Results.ihess);
-if err ~= 0
-    cprintf(rgb('DarkOrange'), 'WARNING: AVC is not positive semi-definite - try a different Hessian approximation method using HessEstFix \n')
+if INPUT.HessEstFix == 2
+%     Results.jacobian2 = jacobianest(@(B) LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.Spike,B),Results.beta);
+    jacobian = jacobianest(@(B) LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.Spike,B),Results.beta);
+    Results.hess = jacobian'*jacobian;
+    Results.ihess = inv(Results.hess);
+    [~,err] = cholcov(Results.ihess);
+    if err ~= 0
+        cprintf(rgb('DarkOrange'), 'WARNING: AVC is not positive semi-definite - trying a different Hessian approximation method \n')
+        INPUT.HessEstFix = 1;
+    end
+end
+
+if INPUT.HessEstFix == 1
+    f = LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.Spike,Results.beta);
+    jacobian = numdiff(@(B) LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.Spike,B),f,Results.beta,isequal(INPUT.OptimOpt.FinDiffType,'central'));
+    Results.hess = jacobian'*jacobian;
+    Results.ihess = inv(Results.hess);
+    [~,err] = cholcov(Results.ihess);
+    if err ~= 0
+        cprintf(rgb('DarkOrange'), 'WARNING: AVC is not positive semi-definite - trying a different Hessian approximation method \n')
+        INPUT.HessEstFix = 0;
+    end
+end
+    
+if INPUT.HessEstFix == 0
+    Results.ihess = inv(Results.hess);
+    [~,err] = cholcov(Results.ihess);
+    if err ~= 0
+        cprintf(rgb('DarkOrange'), 'WARNING: AVC is not positive semi-definite - try a different Hessian approximation method using HessEstFix \n')
+    end
 end
 
 Results.std = sqrt(diag(Results.ihess));
