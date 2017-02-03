@@ -836,11 +836,12 @@ elseif size(R_out,2) == 21
 end
 
 fprintf('\n%s\n',R_out{6+numX,1})
-[~,mCW2] = CellColumnWidth(R_out(7+numX:10+numX,1:2)); % width and max width of each column
+[~,mCW2] = CellColumnWidth(R_out(7+numX:11+numX,1:2)); % width and max width of each column
 fprintf('%-*s% *.*f\n',mCW2(1)+spacing+spacing2,R_out{7+numX,1}, mCW2(2)+precision+1,precision,R_out{7+numX,2})
 fprintf('%-*s% *.*f\n',mCW2(1)+spacing+spacing2,R_out{8+numX,1}, mCW2(2)+precision+1,precision,R_out{8+numX,2})
-fprintf('%-*s% *d\n',mCW2(1)+spacing+spacing2,R_out{9+numX,1}, mCW2(2),R_out{9+numX,2})
+fprintf('%-*s% *.*f\n',mCW2(1)+spacing+spacing2,R_out{9+numX,1}, mCW2(2)+precision+1,precision,R_out{9+numX,2})
 fprintf('%-*s% *d\n',mCW2(1)+spacing+spacing2,R_out{10+numX,1}, mCW2(2),R_out{10+numX,2})
+fprintf('%-*s% *d\n',mCW2(1)+spacing+spacing2,R_out{11+numX,1}, mCW2(2),R_out{11+numX,2})
 
 
 % save out2
