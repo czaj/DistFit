@@ -724,12 +724,13 @@ if numX > 0
 end
 
 R_out(numX+6,1) = {'Model characteristics:'};
-R_out(numX+7:numX+10,1) = {'LL';'AICc/n';'n';'k'};
-R_out(numX+7:numX+10,2) = num2cell([Results.fval; ((2*numB-2*Results.fval) + 2*numB*(numB+1)/(size(INPUT.bounds,1)-numB-1))/size(INPUT.bounds,1); size(INPUT.bounds,1); numB]);
+R_out(numX+7:numX+11,1) = {'LL';'AIC/n';'BIC/n';'n';'k'};
+R_out(numX+7:numX+11,2) = num2cell([Results.fval; (2*numB-2*Results.fval)/size(INPUT.bounds,1); (log(size(INPUT.bounds,1))*numB-2*Results.fval)/size(INPUT.bounds,1); size(INPUT.bounds,1); numB]);
 
 Results.R_out = R_out;
 Results.AIC = (2*numB-2*Results.fval)/size(INPUT.bounds,1);
 Results.AICc = ((2*numB-2*Results.fval) + 2*numB*(numB+1)/(size(INPUT.bounds,1)-numB-1))/size(INPUT.bounds,1);
+Results.BIC = (log(size(INPUT.bounds,1))*numB-2*Results.fval)/size(INPUT.bounds,1);
 
 
 %% display the results
