@@ -1,4 +1,4 @@
-function f = LL_DistFit(bounds, X, weights, dist, Spike, b0)
+function f = LL_DistFit(bounds, X, weights, dist, Spike, RealMin, b0)
 
 % save CDF_WTP_tmp
 % return
@@ -151,8 +151,13 @@ end
 p = (1-pSpike).*dp; % scale down to allow for the probability of spike
 I0 = ((bounds(:,1) == 0 & bounds(:,2) == 0) | (bounds(:,1) <= 0 & bounds(:,2) > 0));
 p(I0) = p(I0) + pSpike(I0); % add spike probability to observations with 0 in bounds
-f = log(p).*weights;
-% f = log(max(p,eps)).*weights;
+
+if RealMin == 0
+    f = log(p).*weights;
+else
+f = log(max(p,eps)).*weights;
 % f = log(max(p,realmin)).*weights;
+end
+
 
 

@@ -53,6 +53,9 @@ if ~isfield(INPUT,'HessEstFix') || isempty(INPUT.HessEstFix)
 elseif all(INPUT.HessEstFix ~= 0:3)
     error('Incorrect INPUT.HessEstFix setting - available options are: 0 - retained from optimization, 1 - BHHH based, 2 - numerical high-precision Jacobian based, 3 - numerical Hessian based')
 end
+if ~isfield(INPUT,'RealMin') || isempty(INPUT.RealMin) || ~any([0,1] == INPUT.RealMin)
+    INPUT.RealMin = 1;
+end
 
 %% check INPUT
 
@@ -312,7 +315,7 @@ if ~isfield(INPUT,'OptimOpt') || isempty(INPUT.OptimOpt)
         elseif isequal(INPUT.Algorithm,'trust-region-reflective')
             INPUT.OptimOpt.Algorithm = 'trust-region-reflective';
         elseif isequal(INPUT.Algorithm,'search')
-            options_tmp = optimset('Display','iter','MaxFunEvals',1e100,'MaxIter',1e4,'TolFun',1e-12,'TolX',1e-12);
+            options_tmp = optimset('MaxFunEvals',1e100,'MaxIter',1e4,'TolFun',1e-12,'TolX',1e-12,'OutputFcn',@outputf);
         else
             error('Incorrectly specified optimization algorithm'); 
         end
@@ -372,7 +375,7 @@ if INPUT.Spike
         cprintf('*blue','spike ')
         cprintf('density at 0 and ')
         cprintf('*blue',[num2str(numX),' '])
-        cprintf('covariates of distribution parameters.\n\n')
+        cprintf('covariate(s) of distribution parameters.\n\n')
     else
         cprintf(' with ')
         cprintf('*blue','spike ')
@@ -382,7 +385,7 @@ else
     if numX>0
         cprintf(' with ')
         cprintf('*blue',[num2str(numX),' '])
-        cprintf('covariates of distribution parameters.\n\n')
+        cprintf('covariate(s) of distribution parameters.\n\n')
     else
         cprintf('.\n\n')
     end
@@ -488,11 +491,11 @@ end
 
 if  isfield(INPUT,'Algorithm') && ~isempty(INPUT.Algorithm) && isequal(INPUT.Algorithm,'search')
 
-    [Results.beta, Results.fval,Results.flag,Results.out] = fminsearch(@(b) -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT, dist,INPUT.Spike,b)), b0,options_tmp);
+    [Results.beta, Results.fval,Results.flag,Results.out] = fminsearch(@(b) -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT, dist,INPUT.Spike,INPUT.RealMin,b)), b0,options_tmp);
 
 else
     
-    [Results.beta, Results.fval, Results.flag, Results.out, Results.lambda, Results.grad, Results.hess] = fmincon(@(b) -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT, dist,INPUT.Spike,b)), b0,A,C,[],[],[],[],[],INPUT.OptimOpt);
+    [Results.beta, Results.fval, Results.flag, Results.out, Results.lambda, Results.grad, Results.hess] = fmincon(@(b) -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT, dist,INPUT.Spike,INPUT.RealMin,b)), b0,A,C,[],[],[],[],[],INPUT.OptimOpt);
 
 end
 
@@ -507,7 +510,7 @@ Results.beta = Results.beta(:);
 Results.fval = -Results.fval;
 
 if INPUT.HessEstFix == 3
-    Results.hess = hessian(@(B) -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.Spike,B)),Results.beta);
+    Results.hess = hessian(@(B) -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.Spike,INPUT.RealMin,B)),Results.beta);
     Results.ihess = inv(Results.hess);
     [~,err] = cholcov(Results.ihess);
     if err ~= 0
@@ -518,7 +521,7 @@ end
 
 if INPUT.HessEstFix == 2
 %     Results.jacobian2 = jacobianest(@(B) LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.Spike,B),Results.beta);
-    jacobian = jacobianest(@(B) LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.Spike,B),Results.beta);
+    jacobian = jacobianest(@(B) LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.Spike,INPUT.RealMin,B),Results.beta);
     Results.hess = jacobian'*jacobian;
     Results.ihess = inv(Results.hess);
     [~,err] = cholcov(Results.ihess);
@@ -529,8 +532,8 @@ if INPUT.HessEstFix == 2
 end
 
 if INPUT.HessEstFix == 1
-    f = LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.Spike,Results.beta);
-    jacobian = numdiff(@(B) LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.Spike,B),f,Results.beta,isequal(INPUT.OptimOpt.FinDiffType,'central'));
+    f = LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.Spike,INPUT.RealMin,Results.beta);
+    jacobian = numdiff(@(B) LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.Spike,INPUT.RealMin,B),f,Results.beta,isequal(INPUT.OptimOpt.FinDiffType,'central'));
     Results.hess = jacobian'*jacobian;
     Results.ihess = inv(Results.hess);
     [~,err] = cholcov(Results.ihess);
@@ -854,8 +857,8 @@ if INPUT.SimStats
         cprintf(rgb('DarkOrange'), 'WARNING: AVC is not positive semi-definite - aborting simulation of descriptive statistics \n')
     else
         
-        sim1 = 1e3;
-        sim2 = 1e3;
+        sim1 = 1e4;
+        sim2 = 1e4;
         
         Bi = mvnrnd(Results.beta,Results.ihess,sim1)'; % draw parameter distributions taking uncertainty (standard errors) into account
         
@@ -869,12 +872,12 @@ if INPUT.SimStats
                 end
                 bSpike = Bi(numDistParam+1,:) + meanX*Bi(numDistParam*(1+numX)+1+1:(numDistParam+1)*(1+numX),:);
                 pSpike = normcdf(bSpike);
-                ru01 = random('unif',0,1,[1,sim1]);
+                ru01 = random('unif',0,1,[1,sim2]);
                 tSpike = ru01 < pSpike;
             else % Spike only
                 bSpike = Bi(numDistParam+1,:);
                 pSpike = normcdf(bSpike);
-                ru01 = random('unif',0,1,[1,sim1]);
+                ru01 = random('unif',0,1,[1,sim2]);
                 tSpike = ru01 < pSpike;
             end
         else
@@ -887,7 +890,7 @@ if INPUT.SimStats
             else % baseline distribution only
                 % bDist only
             end
-            tSpike = false(1,sim1);
+            tSpike = false(1,sim2);
         end
         
         Bmtx(sim1,sim2) = 0;
@@ -976,8 +979,10 @@ if INPUT.SimStats
                 end
         end
         
-        %         save out3;
-        Bmtx(repmat(tSpike',[1,sim2])) = 0;
+%                 save out3;
+%         Bmtx(repmat(tSpike',[1,sim2])) = 0;
+        Bmtx(repmat(tSpike,[sim2,1])) = 0; % spike must enter like this (to each distribution) - otherwise s.e. will blow up. 
+        
         
         stats1 = [nanmean(Bmtx(:)) nanstd(Bmtx(:)) nanmedian(Bmtx(:)) quantile((Bmtx(:)),0.025) quantile((Bmtx(:)),0.975)];
         stats2 = nanstd([nanmean(Bmtx,2), nanstd(Bmtx,[],2), nanmedian(Bmtx,2), quantile(Bmtx,0.025,2), quantile(Bmtx,0.975,2)],[],1);
