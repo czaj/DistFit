@@ -288,6 +288,17 @@ if ~exist('b0','var') || isempty(b0)
     b0 = [b0 pSpike zeros(1,numX*(numDistParam + INPUT.Spike))];    
 end
 
+if isfield(INPUT,'ExpB') && ~isempty(INPUT.ExpB)
+    if ~all(size(INPUT.ExpB) == size(b0))
+        cprintf(rgb('DarkOrange'), 'WARNING: Size of ExpB not consistent with the number of model parameters\n')
+        INPUT.ExpB = false(size(b0));
+    else
+        INPUT.ExpB = INPUT.ExpB(:)==1;        
+    end
+else
+    INPUT.ExpB = false(size(b0));
+end
+
 
 %% check optimizer options:
 % if ~isfield(INPUT,'OptimOpt') || isempty(INPUT.OptimOpt)
@@ -419,11 +430,18 @@ switch dist
             zeros(size(INPUT.bounds,1),numX), INPUT.X, zeros(size(INPUT.bounds,1),numX*INPUT.Spike)]];
         C = [INPUT.bounds(:,1); ...
             INPUT.bounds(:,2)];
-    case 6 % Johnson SU: gamma, delta>0, mi, sigma>0; 
-        A = [zeros(size(INPUT.bounds,1),1), ones(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),2), zeros(size(INPUT.bounds,1),INPUT.Spike), ...
-            zeros(size(INPUT.bounds,1),numX), INPUT.X, zeros(size(INPUT.bounds,1),numX*2), zeros(size(INPUT.bounds,1),numX*INPUT.Spike)];
-        A = -[A; [zeros(size(INPUT.bounds,1),3), ones(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),INPUT.Spike), ...
-            zeros(size(INPUT.bounds,1),numX*3), INPUT.X, zeros(size(INPUT.bounds,1),numX*INPUT.Spike)]];
+    case 6 % Johnson SU: gamma, delta>0, mi, sigma>0;
+        if INPUT.ExpB(2) && INPUT.ExpB(4)
+            A = [zeros(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),2), zeros(size(INPUT.bounds,1),INPUT.Spike), ...
+                zeros(size(INPUT.bounds,1),numX), INPUT.X, zeros(size(INPUT.bounds,1),numX*2), zeros(size(INPUT.bounds,1),numX*INPUT.Spike)];        
+            A = -[A; [zeros(size(INPUT.bounds,1),3), zeros(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),INPUT.Spike), ...
+                zeros(size(INPUT.bounds,1),numX*3), INPUT.X, zeros(size(INPUT.bounds,1),numX*INPUT.Spike)]];       
+        else % other possibilities are ignored for now 
+            A = [zeros(size(INPUT.bounds,1),1), ones(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),2), zeros(size(INPUT.bounds,1),INPUT.Spike), ...
+                zeros(size(INPUT.bounds,1),numX), INPUT.X, zeros(size(INPUT.bounds,1),numX*2), zeros(size(INPUT.bounds,1),numX*INPUT.Spike)];        
+            A = -[A; [zeros(size(INPUT.bounds,1),3), ones(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),INPUT.Spike), ...
+                zeros(size(INPUT.bounds,1),numX*3), INPUT.X, zeros(size(INPUT.bounds,1),numX*INPUT.Spike)]];
+        end
         C = zeros(2*size(INPUT.bounds,1),1);
     case {10,14,31} % Exponential: mu>0; Rayleigh: b0>0; Poisson: lambda>0
         A = -[ones(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),INPUT.Spike), ...
@@ -485,17 +503,17 @@ end
 
 % [Results.beta, Results.fval, Results.flag, Results.out, Results.grad, Results.hess] = fminunc(@(b) -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT, dist,INPUT.Spike,b)), b0, INPUT.OptimOpt);
 
-% save tmp1
+save tmp1
 % return
  
 
 if  isfield(INPUT,'Algorithm') && ~isempty(INPUT.Algorithm) && isequal(INPUT.Algorithm,'search')
 
-    [Results.beta, Results.fval,Results.flag,Results.out] = fminsearch(@(b) -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT, dist,INPUT.Spike,INPUT.RealMin,b)), b0,options_tmp);
+    [Results.beta, Results.fval,Results.flag,Results.out] = fminsearch(@(b) -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT, dist,INPUT.Spike,INPUT.RealMin,INPUT.ExpB,b)), b0,options_tmp);
 
 else
     
-    [Results.beta, Results.fval, Results.flag, Results.out, Results.lambda, Results.grad, Results.hess] = fmincon(@(b) -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT, dist,INPUT.Spike,INPUT.RealMin,b)), b0,A,C,[],[],[],[],[],INPUT.OptimOpt);
+    [Results.beta, Results.fval, Results.flag, Results.out, Results.lambda, Results.grad, Results.hess] = fmincon(@(b) -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT, dist,INPUT.Spike,INPUT.RealMin,INPUT.ExpB,b)), b0,A,C,[],[],[],[],[],INPUT.OptimOpt);
 
 end
 
@@ -510,7 +528,7 @@ Results.beta = Results.beta(:);
 Results.fval = -Results.fval;
 
 if INPUT.HessEstFix == 3
-    Results.hess = hessian(@(B) -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.Spike,INPUT.RealMin,B)),Results.beta);
+    Results.hess = hessian(@(B) -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.Spike,INPUT.RealMin,INPUT.ExpB,B)),Results.beta);
     Results.ihess = inv(Results.hess);
     [~,err] = cholcov(Results.ihess);
     if err ~= 0
@@ -521,7 +539,7 @@ end
 
 if INPUT.HessEstFix == 2
 %     Results.jacobian2 = jacobianest(@(B) LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.Spike,B),Results.beta);
-    jacobian = jacobianest(@(B) LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.Spike,INPUT.RealMin,B),Results.beta);
+    jacobian = jacobianest(@(B) LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.Spike,INPUT.RealMin,INPUT.ExpB,B),Results.beta);
     Results.hess = jacobian'*jacobian;
     Results.ihess = inv(Results.hess);
     [~,err] = cholcov(Results.ihess);
@@ -532,8 +550,8 @@ if INPUT.HessEstFix == 2
 end
 
 if INPUT.HessEstFix == 1
-    f = LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.Spike,INPUT.RealMin,Results.beta);
-    jacobian = numdiff(@(B) LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.Spike,INPUT.RealMin,B),f,Results.beta,isequal(INPUT.OptimOpt.FinDiffType,'central'));
+    f = LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.Spike,INPUT.RealMin,INPUT.ExpB,Results.beta);
+    jacobian = numdiff(@(B) LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.Spike,INPUT.RealMin,INPUT.ExpB,B),f,Results.beta,isequal(INPUT.OptimOpt.FinDiffType,'central'));
     Results.hess = jacobian'*jacobian;
     Results.ihess = inv(Results.hess);
     [~,err] = cholcov(Results.ihess);
@@ -608,7 +626,7 @@ switch dist
         R_out(2,6) = {'max'};
         R_out(3,1:5) = head;
         R_out(3,6:9) = head(2:5);
-    case 6 % Johnson SU % gamma delta xi lambda
+    case 6 % Johnson SU % gamma, delta>0, xi, sigma>0
         R_out(2,2) = {'gamma'};
         R_out(2,6) = {'delta'};
         R_out(2,10) = {'xi'};
@@ -857,12 +875,14 @@ if INPUT.SimStats
         cprintf(rgb('DarkOrange'), 'WARNING: AVC is not positive semi-definite - aborting simulation of descriptive statistics \n')
     else
         
-        sim1 = 1e4;
-        sim2 = 1e4;
+        sim1 = 1e3;
+        sim2 = 1e3;
         
         Bi = mvnrnd(Results.beta,Results.ihess,sim1)'; % draw parameter distributions taking uncertainty (standard errors) into account
         
         bDist = Bi(1:numDistParam,:); % numDistParam x sim1
+        bDist(INPUT.ExpB,:) = exp(bDist(INPUT.ExpB,:));
+        
         if INPUT.Spike
             if numX > 0 % Spike and X
                 meanX = mean(bsxfun(@times,INPUT.X,INPUT.WT));
@@ -919,8 +939,14 @@ if INPUT.SimStats
                 for i = 1:sim1
                     Bmtx(i,:) = random('unif',bDist(1,i),bDist(2,i),[1,sim2]);
                 end
-            case 6 % Johnson SU % gamma, delta, mi, sigma
-                % na to nawet nie mamy funkcji...
+            case 6 % Johnson SU % gamma, delta, mi, sigma                
+                for i = 1:sim1                    
+                    if any(bDist([2,4],i) <= 0) % gamma, delta>0, xi, sigma>0
+                        Bmtx(i,:) = NaN;
+                    else                        
+                        Bmtx(i,:) = JohnsonRND('SU',bDist(1,i),bDist(2,i),bDist(3,i),bDist(4,i),[1,sim2]);
+                    end
+                end
             case 10 % exponential % mu
                 for i = 1:sim1
                     Bmtx(i,:) = random('exp',bDist(1,i),[1,sim2]);
@@ -966,9 +992,21 @@ if INPUT.SimStats
                     Bmtx(i,:) = random('rician',bDist(1,i),bDist(2,i),[1,sim2]);
                 end
             case 21 % Johnson SB % gamma, delta, mi, sigma
-                % Brak funkcji
+               for i = 1:sim1
+                    if any(bDist([2,4],i) <= 0) % gamma, delta>0, xi, sigma>0
+                        Bmtx(i,:) = NaN;
+                    else                        
+                        Bmtx(i,:) = JohnsonRND('SB',bDist(1,i),bDist(2,i),bDist(3,i),bDist(4,i),[1,sim2]);
+                    end
+                end
             case 22 % Johnson SL % gamma, delta, mi, sigma
-                % Brak funkcji
+                for i = 1:sim1
+                    if any(bDist([2,4],i) <= 0) % gamma, delta>0, xi, sigma>0
+                        Bmtx(i,:) = NaN;
+                    else                        
+                        Bmtx(i,:) = JohnsonRND('SL',bDist(1,i),bDist(2,i),bDist(3,i),bDist(4,i),[1,sim2]);
+                    end
+                end
             case 31 % Poisson % lambda
                 for i = 1:sim1
                     Bmtx(i,:) = random('Poisson',bDist(1,i),[1,sim2]);
@@ -981,10 +1019,10 @@ if INPUT.SimStats
         
 %                 save out3;
 %         Bmtx(repmat(tSpike',[1,sim2])) = 0;
-        Bmtx(repmat(tSpike,[sim2,1])) = 0; % spike must enter like this (to each distribution) - otherwise s.e. will blow up. 
-        
-        
-        stats1 = [nanmean(Bmtx(:)) nanstd(Bmtx(:)) nanmedian(Bmtx(:)) quantile((Bmtx(:)),0.025) quantile((Bmtx(:)),0.975)];
+        Bmtx(~isnan(Bmtx) & repmat(tSpike,[sim2,1])) = 0; % spike must enter like this (to each distribution) - otherwise s.e. will blow up. 
+                
+%         stats1 = [nanmean(Bmtx(:)) nanstd(Bmtx(:)) nanmedian(Bmtx(:)) quantile((Bmtx(:)),0.025) quantile((Bmtx(:)),0.975)];
+        stats1 = nanmedian([nanmean(Bmtx,2), nanstd(Bmtx,[],2), nanmedian(Bmtx,2), quantile(Bmtx,0.025,2), quantile(Bmtx,0.975,2)],1);
         stats2 = nanstd([nanmean(Bmtx,2), nanstd(Bmtx,[],2), nanmedian(Bmtx,2), quantile(Bmtx,0.025,2), quantile(Bmtx,0.975,2)],[],1);
         stats31 = quantile([nanmean(Bmtx,2), nanstd(Bmtx,[],2), nanmedian(Bmtx,2), quantile(Bmtx,0.025,2), quantile(Bmtx,0.975,2)],0.025,1);
         stats32 = quantile([nanmean(Bmtx,2), nanstd(Bmtx,[],2), nanmedian(Bmtx,2), quantile(Bmtx,0.025,2), quantile(Bmtx,0.975,2)],0.975,1);

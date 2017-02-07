@@ -1,8 +1,8 @@
-function p = JohnsonPDF(x, gamma, delta, mi, sigma, type)
+function p = JohnsonPDF(x, gamma, delta, xi, sigma, type)
 
 %         gamma - shape parameter #1
 %         delta - shape parameter #2
-%         mi - location parameter
+%         xi - location parameter
 %         sigma - scale parameter
 
 if isscalar(gamma)
@@ -17,10 +17,10 @@ end
 if isvector(delta) && size(delta,1) ~= size(x,1)
     error('The length of the vector of the Johnson parameter delta does not match the number of elements in x')
 end
-if isscalar(mi)
-    mi = repmat(mi,size(x,1),1);
+if isscalar(xi)
+    xi = repmat(xi,size(x,1),1);
 end
-if isvector(mi) && size(mi,1) ~= size(x,1)
+if isvector(xi) && size(xi,1) ~= size(x,1)
     error('The length of the vector of the Johnson parameter mi does not match the number of elements in x')
 end
 if isscalar(sigma)
@@ -32,14 +32,14 @@ end
 
 switch type
 	case 'SU' % unbounded
-        p = (exp(-0.5.*(gamma+delta.*asinh((x-mi)./sigma)).^2).*delta)./((2*pi).^(0.5).*((x-mi).^2+sigma.^2).^(0.5));
+        p = (exp(-0.5.*(gamma+delta.*asinh((x-xi)./sigma)).^2).*delta)./((2*pi).^(0.5).*((x-xi).^2+sigma.^2).^(0.5));
 	case 'SL' % semi-bounded
         p = zeros(size(x));
-        p(x > mi) = (exp(-0.5*(gamma(x > mi)+delta(x > mi).*log((x(x > mi)-mi(x > mi))./sigma(x > mi))).^2).*delta(x > mi)) ./ ((2*pi)^(0.5).*(x(x > mi)-mi(x > mi)));
+        p(x > xi) = (exp(-0.5*(gamma(x > xi)+delta(x > xi).*log((x(x > xi)-xi(x > xi))./sigma(x > xi))).^2).*delta(x > xi)) ./ ((2*pi)^(0.5).*(x(x > xi)-xi(x > xi)));
 %         p(x <= mi) = 0;
 	case 'SB' % bounded
         p = zeros(size(x));
-        p((x > mi) & (x < mi + sigma)) = (exp(-0.5.*(gamma((x > mi) & (x < mi + sigma))+delta((x > mi) & (x < mi + sigma)).*log((x((x > mi) & (x < mi + sigma))-mi((x > mi) & (x < mi + sigma)))./(-x((x > mi) & (x < mi + sigma))+mi((x > mi) & (x < mi + sigma))+sigma((x > mi) & (x < mi + sigma))))).^2).*delta((x > mi) & (x < mi + sigma)).*sigma((x > mi) & (x < mi + sigma)))./((2*pi)^(0.5).*(x((x > mi) & (x < mi + sigma))-mi((x > mi) & (x < mi + sigma))).*(-x((x > mi) & (x < mi + sigma))+mi((x > mi) & (x < mi + sigma))+sigma((x > mi) & (x < mi + sigma))));
+        p((x > xi) & (x < xi + sigma)) = (exp(-0.5.*(gamma((x > xi) & (x < xi + sigma))+delta((x > xi) & (x < xi + sigma)).*log((x((x > xi) & (x < xi + sigma))-xi((x > xi) & (x < xi + sigma)))./(-x((x > xi) & (x < xi + sigma))+xi((x > xi) & (x < xi + sigma))+sigma((x > xi) & (x < xi + sigma))))).^2).*delta((x > xi) & (x < xi + sigma)).*sigma((x > xi) & (x < xi + sigma)))./((2*pi)^(0.5).*(x((x > xi) & (x < xi + sigma))-xi((x > xi) & (x < xi + sigma))).*(-x((x > xi) & (x < xi + sigma))+xi((x > xi) & (x < xi + sigma))+sigma((x > xi) & (x < xi + sigma))));
 %         p((x <= mi) | (x >= mi + sigma)) = 0;  
    otherwise
       error('Unknown distribution type. Possible options: SU, SL, SB');

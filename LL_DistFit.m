@@ -1,9 +1,11 @@
-function f = LL_DistFit(bounds, X, weights, dist, Spike, RealMin, b0)
+function f = LL_DistFit(bounds, X, weights, dist, Spike, RealMin, ExpB, b0)
 
 % save CDF_WTP_tmp
 % return
 
 b0 = b0(:);
+
+b0(ExpB) = exp(b0(ExpB));
 
 numDistParam = 1*any(dist == [10,14,31]) + 2*any(dist == [0:2,5,11:13,15,16,18:20,32]) + 3*any(dist == [3,4,17]) + 4*any(dist == [6,21:22]);
 
@@ -68,8 +70,9 @@ switch dist
         dp = cdf('Uniform',bounds(:,2),bDist(:,1),bDist(:,2)) - ...
             cdf('Uniform',bounds(:,1),bDist(:,1),bDist(:,2));
         dp(dp==0) = pdf('Uniform',bounds_min(dp==0,1),bDist(dp==0,1),bDist(dp==0,2));
-    case 6 % Johnson SU % gamma, delta>0, mi, sigma>0
-        %         save tmp1
+    case 6 % Johnson SU % gamma, delta>0, xi, sigma>0
+%                 save tmp1
+%                 return
         dp = JohnsonCDF(bounds(:,2),bDist(:,1),bDist(:,2),bDist(:,3),bDist(:,4),'SU') - ...
             JohnsonCDF(bounds(:,1),bDist(:,1),bDist(:,2),bDist(:,3),bDist(:,4),'SU');
         dp(dp==0) = JohnsonPDF(bounds_min(dp==0,1),bDist(dp==0,1),bDist(dp==0,2),bDist(dp==0,3),bDist(dp==0,4),'SU');
@@ -92,6 +95,7 @@ switch dist
             cdf('Loglogistic',bounds(:,1),bDist(:,1),bDist(:,2));
         dp(dp==0) = pdf('Loglogistic',bounds_min(dp==0,1),bDist(dp==0,1),bDist(dp==0,2));
     case 13 % Weibull % A>0, b0>0
+%         save tmp3
         dp = cdf('Weibull',bounds(:,2),bDist(:,1),bDist(:,2)) - ...
             cdf('Weibull',bounds(:,1),bDist(:,1),bDist(:,2));
         dp(dp==0) = pdf('Weibull',bounds_min(dp==0,1),bDist(dp==0,1),bDist(dp==0,2));
@@ -155,7 +159,8 @@ p(I0) = p(I0) + pSpike(I0); % add spike probability to observations with 0 in bo
 if RealMin == 0
     f = log(p).*weights;
 else
-f = log(max(p,eps)).*weights;
+    p(p > 1) = 1;
+    f = log(max(p,eps)).*weights;
 % f = log(max(p,realmin)).*weights;
 end
 
