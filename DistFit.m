@@ -182,7 +182,11 @@ if exist('b0','var') && ~isempty(b0)
 end
 
 if INPUT.Spike
-    bounds_tmp = INPUT.bounds(INPUT.bounds(:,1)~=INPUT.bounds(:,2)~=0,:);
+    if all(INPUT.bounds(:,1) == INPUT.bounds(:,2)) % DistFit used for OE questions data (lower bound = upper bound)
+        bounds_tmp = INPUT.bounds(INPUT.bounds(:,1)~=0,:);
+    else        
+        bounds_tmp = INPUT.bounds(INPUT.bounds(:,1)~=INPUT.bounds(:,2)~=0,:);
+    end
     pSpike = norminv(max(1 - size(bounds_tmp,1)./size(INPUT.bounds,1),0.1),0,1);
 else
     bounds_tmp = INPUT.bounds;
