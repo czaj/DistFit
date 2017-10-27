@@ -105,7 +105,7 @@ end
 if dist == 21 && any(INPUT.bounds(:,2) == Inf)
     cprintf(rgb('DarkOrange'), 'WARNING: Inf upper bounds not consistent with Johnson SB distribution - censoring to maximum finite bound\n')
     INPUT.bounds(INPUT.bounds(:,2)==Inf,2) = max(INPUT.bounds(isfinite(INPUT.bounds)));
-%    INPUT.bounds(:,1) = min(INPUT.bounds,[],2);
+    %    INPUT.bounds(:,1) = min(INPUT.bounds,[],2);
 end
 if dist == 5 && any(INPUT.bounds(:,2) == Inf)
     cprintf(rgb('DarkOrange'), 'WARNING: Inf upper bounds not consistent with Uniform distribution - censoring to maximum finite bound\n')
@@ -161,7 +161,8 @@ end
 
 if sum(INPUT.WT) ~= size(INPUT.bounds,1)
     cprintf(rgb('DarkOrange'), 'WARNING: Scaling weights for unit mean \n')
-    INPUT.WT = INPUT.WT - mean(INPUT.WT) + 1;
+%     INPUT.WT = INPUT.WT - mean(INPUT.WT) + 1;
+    INPUT.WT = INPUT.WT.*size(INPUT.WT,1)./sum(INPUT.WT);
 end
 
 numDistParam = 1*any(dist == [10,14,31]) + 2*any(dist == [0:2,5,11:13,15,16,18:20,32]) + 3*any(dist == [3,4,17]) + 4*any(dist == [6,21:22]);
@@ -330,7 +331,7 @@ if ~isfield(INPUT,'OptimOpt') || isempty(INPUT.OptimOpt)
         elseif isequal(INPUT.Algorithm,'trust-region-reflective')
             INPUT.OptimOpt.Algorithm = 'trust-region-reflective';
         elseif isequal(INPUT.Algorithm,'search')
-            options_tmp = optimset('MaxFunEvals',1e100,'MaxIter',1e4,'TolFun',1e-12,'TolX',1e-12,'OutputFcn',@outputf);
+            options_tmp = optimset('MaxFunEvals',1e5,'MaxIter',1e4,'TolFun',1e-12,'TolX',1e-12,'OutputFcn',@outputf);
         else
             error('Incorrectly specified optimization algorithm'); 
         end
@@ -342,7 +343,7 @@ if ~isfield(INPUT,'OptimOpt') || isempty(INPUT.OptimOpt)
         end
     end    
     INPUT.OptimOpt.MaxFunEvals = 1e12; % Maximum number of function evaluations allowed (1000)
-    INPUT.OptimOpt.MaxIter = 1e4; % Maximum number of iterations allowed (500)
+    INPUT.OptimOpt.MaxIter = 1e3; % Maximum number of iterations allowed (500)
     INPUT.OptimOpt.GradObj = 'off';
     INPUT.OptimOpt.FinDiffType = 'central'; % ('forward')
     INPUT.OptimOpt.TolFun = 1e-12;
@@ -478,7 +479,6 @@ switch dist
             INPUT.bounds(:,1);...
             -INPUT.bounds(:,2)+INPUT.bounds(:,1)];
     case 22 % Johnson SL: gamma, delta>0, mi<lbound, sigma>0
-%         save tmp1
         A = -[zeros(size(INPUT.bounds,1),1), ones(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),2), zeros(size(INPUT.bounds,1),INPUT.Spike), ...
             zeros(size(INPUT.bounds,1),numX), INPUT.X, zeros(size(INPUT.bounds,1),numX*2), zeros(size(INPUT.bounds,1),numX*INPUT.Spike)];
         A = [A; [zeros(size(INPUT.bounds,1),2), ones(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),INPUT.Spike), ...
@@ -506,10 +506,6 @@ end
 
 
 % [Results.beta, Results.fval, Results.flag, Results.out, Results.grad, Results.hess] = fminunc(@(b) -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT, dist,INPUT.Spike,b)), b0, INPUT.OptimOpt);
-
-save tmp1
-% return
- 
 
 if  isfield(INPUT,'Algorithm') && ~isempty(INPUT.Algorithm) && isequal(INPUT.Algorithm,'search')
 
@@ -868,11 +864,6 @@ fprintf('%-*s% *.*f\n',mCW2(1)+spacing+spacing2,R_out{9+numX,1}, mCW2(2)+precisi
 fprintf('%-*s% *d\n',mCW2(1)+spacing+spacing2,R_out{10+numX,1}, mCW2(2),R_out{10+numX,2})
 fprintf('%-*s% *d\n',mCW2(1)+spacing+spacing2,R_out{11+numX,1}, mCW2(2),R_out{11+numX,2})
 
-
-% save out2
-
-
-
 if INPUT.SimStats
     
     if err ~= 0
@@ -1021,7 +1012,6 @@ if INPUT.SimStats
                 end
         end
         
-%                 save out3;
 %         Bmtx(repmat(tSpike',[1,sim2])) = 0;
         Bmtx(~isnan(Bmtx) & repmat(tSpike,[sim2,1])) = 0; % spike must enter like this (to each distribution) - otherwise s.e. will blow up. 
                 
