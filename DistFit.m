@@ -283,10 +283,10 @@ if ~exist('b0','var') || isempty(b0)
             
             % discrete
         case 31 % Poisson
-            pd = fitdist(round(midpoint),'Poisson','Options',OptimOptFit);
+            pd = fitdist(round(midpoint(midpoint>0)),'Poisson','Options',OptimOptFit);
             b0 = pd.ParameterValues; % lambda
         case 32 % negative binomial
-            pd = fitdist(round(midpoint),'NegativeBinomial','Options',OptimOptFit);
+            pd = fitdist(round(midpoint(midpoint>0)),'NegativeBinomial','Options',OptimOptFit);
             b0 = pd.ParameterValues; % R, P
     end
     
@@ -318,6 +318,15 @@ end
 %     INPUT.OptimOpt.OutputFcn = @outputf;
 %     % OptimOpt.Display = 'iter-detailed';
 % end
+
+if ~isfield(INPUT,'Algorithm') || isempty(INPUT.Algorithm) || ~any(strfind(['interior-point','sqp','active-set','trust-region-reflective','search'],INPUT.Algorithm))
+    if any(dist == [21,22])
+        INPUT.Algorithm = 'sqp';%'interior-point'; %'sqp'; 'active-set'; 'trust-region-reflective';
+    else
+        INPUT.Algorithm = 'interior-point'; %'sqp'; 'active-set'; 'trust-region-reflective';
+    end
+end
+    
 
 if ~isfield(INPUT,'OptimOpt') || isempty(INPUT.OptimOpt)
     INPUT.OptimOpt = optimoptions('fmincon');
@@ -406,6 +415,7 @@ else
         cprintf('.\n\n')
     end
 end
+
 
 
 %% Specify constraints
@@ -502,6 +512,7 @@ end
 
 
 
+
 %% Optimization
 
 
@@ -522,7 +533,7 @@ end
 %% generate output
 
 
-% save tmpout1
+
 
 Results.beta = Results.beta(:);
 Results.fval = -Results.fval;
@@ -549,7 +560,7 @@ if INPUT.HessEstFix == 2
     end
 end
 
-if INPUT.HessEstFix == 1
+if INPUT.HessEstFix == 1 || isequal(INPUT.Algorithm,'search')
     f = LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.Spike,INPUT.RealMin,INPUT.ExpB,Results.beta);
     jacobian = numdiff(@(B) LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.Spike,INPUT.RealMin,INPUT.ExpB,B),f,Results.beta,isequal(INPUT.OptimOpt.FinDiffType,'central'));
     Results.hess = jacobian'*jacobian;
@@ -561,7 +572,7 @@ if INPUT.HessEstFix == 1
     end
 end
     
-if INPUT.HessEstFix == 0
+if INPUT.HessEstFix == 0 && ~isequal(INPUT.Algorithm,'search')
     Results.ihess = inv(Results.hess);
     [~,err] = cholcov(Results.ihess);
     if err ~= 0
@@ -744,6 +755,8 @@ if numX > 0
     end
 end
 
+
+
 R_out(numX+6,1) = {'Model characteristics:'};
 R_out(numX+7:numX+11,1) = {'LL';'AIC/n';'BIC/n';'n';'k'};
 R_out(numX+7:numX+11,2) = num2cell([Results.fval; (2*numB-2*Results.fval)/size(INPUT.bounds,1); (log(size(INPUT.bounds,1))*numB-2*Results.fval)/size(INPUT.bounds,1); size(INPUT.bounds,1); numB]);
@@ -855,6 +868,8 @@ elseif size(R_out,2) == 21
             mCW1(18)+spacing+precision+1,precision,R_out{i,18}, R_out{i,19}, mCW1(20)+spacing+precision+1,precision,R_out{i,20}, mCW1(21)+spacing+precision+1,precision,R_out{i,21})
     end
 end
+
+
 
 fprintf('\n%s\n',R_out{6+numX,1})
 [~,mCW2] = CellColumnWidth(R_out(7+numX:11+numX,1:2)); % width and max width of each column
