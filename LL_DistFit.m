@@ -7,7 +7,7 @@ b0 = b0(:);
 
 b0(ExpB) = exp(b0(ExpB));
 
-numDistParam = 1*any(dist == [10,14,31]) + 2*any(dist == [0:2,5,11:13,15,16,18:20,32]) + 3*any(dist == [3,4,17]) + 4*any(dist == [6,21:22]);
+numDistParam = 1*any(dist == [10,14,31]) + 2*any(dist == [0:2,5,11:13,15,16,18:20,23,32]) + 3*any(dist == [3,4,17]) + 4*any(dist == [6,21:22]);
 
 numX = size(X,2);
 
@@ -105,7 +105,7 @@ switch dist
             cdf('Loglogistic',bounds(:,1)-eps,bDist(:,1),bDist(:,2));% + ...
 %             pdf('Loglogistic',bounds(:,1),bDist(:,1),bDist(:,2)) - ...
 %             pdf('Loglogistic',bounds(:,2),bDist(:,1),bDist(:,2));
-        dp(dp==0) = pdf('Loglogistic',bounds_min(dp==0,1),bDist(dp==0,1),bDist(dp==0,2));
+        dp(dp==0) = pdf('Loglogistic',bounds_min(dp==0,1),bDist(dp==0,1),bDist(dp==0,2));       
     case 13 % Weibull % A>0, b0>0
         dp = cdf('Weibull',bounds(:,2)-eps,bDist(:,1),bDist(:,2)) - ...
             cdf('Weibull',bounds(:,1)-eps,bDist(:,1),bDist(:,2));% + ...
@@ -166,6 +166,14 @@ switch dist
 %             JohnsonPDF(bounds(:,1),bDist(:,1),bDist(:,2),bDist(:,3),bDist(:,4),'SL') - ...
 %             JohnsonPDF(bounds(:,2),bDist(:,1),bDist(:,2),bDist(:,3),bDist(:,4),'SL');
         dp(dp==0) = JohnsonPDF(bounds_min(dp==0,1),bDist(dp==0,1),bDist(dp==0,2),bDist(dp==0,3),bDist(dp==0,4),'SL');
+    case 23 % Truncated normal % mu, sigma>0
+%         save tmp1
+        
+        dp = TruncNormCDF(bounds(:,2)-eps,bDist(:,1),bDist(:,2),0,Inf) - ... % -eps is needed so that cdf effectively becomes P(X<x) instead of P(X<=x)
+            TruncNormCDF(bounds(:,1)-eps,bDist(:,1),bDist(:,2),0,Inf);% + ...
+%             pdf('Normal',bounds(:,1),bDist(:,1),bDist(:,2)) - ...
+%             pdf('Normal',bounds(:,2),bDist(:,1),bDist(:,2));
+        dp(dp==0) = TruncNormPDF(bounds_min(dp==0,1),bDist(dp==0,1),bDist(dp==0,2),0,Inf); % replace 0 cdf difference with pdf at lower absolute bound (if extreme bounds or exact x known)
         
         % discrete
     case 31 % Poisson % lambda>0
