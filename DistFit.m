@@ -24,7 +24,7 @@ end
 if ~exist('dist','var') || isempty(dist)
     disp('Assuming normally distributed Results')
     dist = 0;
-elseif ~any(dist == [0:6,10:22,31:32])
+elseif ~any(dist == [0:6,10:23,31:32])
     error('Unsupported distribution type')
 end
 
@@ -78,10 +78,6 @@ elseif any(INPUT.bounds(:,1) > INPUT.bounds(:,2))
     %     INPUT.bounds(INPUT.bounds(:,1)==-Inf,1) = min([INPUT.bounds(isfinite(INPUT.bounds));0]);
     %     INPUT.bounds(:,2) = max(INPUT.bounds,[],2);
 end
-
-
-% Czy mog?aby? sprawdzi?, czy osobno trzeba rozpatrywa? przypadek ujemnych warto?ci i niedodatnich warto?ci - a je?li tak to rozdzieli? te 2 przypadki?
-% Spike troch? to zmienia, bo jak jest spike w zerze to nawet rozk?ady, które wymagaj? dodatnich warto?ci a która? jest równa 0 to i tak jest ok.
 
 if any(dist == [10:21,31:32]) && (~INPUT.Spike && any(INPUT.bounds(:,2) <= 0) || (INPUT.Spike && any(INPUT.bounds(:,2) < 0)))
     cprintf(rgb('DarkOrange'), 'WARNING: Data contains observations not consistent with the distribution type (negative) \n')
@@ -165,7 +161,7 @@ if sum(INPUT.WT) ~= size(INPUT.bounds,1)
     INPUT.WT = INPUT.WT.*size(INPUT.WT,1)./sum(INPUT.WT);
 end
 
-numDistParam = 1*any(dist == [10,14,31]) + 2*any(dist == [0:2,5,11:13,15,16,18:20,32]) + 3*any(dist == [3,4,17]) + 4*any(dist == [6,21:22]);
+numDistParam = 1*any(dist == [10,14,31]) + 2*any(dist == [0:2,5,11:13,15,16,18:20,23,32]) + 3*any(dist == [3,4,17]) + 4*any(dist == [6,21:22]);
 
 numX = size(INPUT.X,2);
 numB = (numDistParam + INPUT.Spike) * (1 + numX);
@@ -280,6 +276,12 @@ if ~exist('b0','var') || isempty(b0)
             % % b0 =
             % elseif dist==24 % sinh-arcsinh
             % % b0 =
+         case 23 % Truncated normal              
+%             [norm_trunc, phat, phat_ci] = fitdist_ntrunc(midpoint,[0, Inf]);            
+%             b0 = phat; % mu, sigma
+            % this just uses normal for now:            
+            pd = fitdist(midpoint,'Normal','Options',OptimOptFit);
+            b0 = pd.ParameterValues; % mu, sigma
             
             % discrete
         case 31 % Poisson
@@ -374,7 +376,7 @@ Distributions = {...
     5 'Uniform'; ...
     6 'Johnson_SU'; ...
     
-    10 'Expotential'; ...
+    10 'Exponential'; ...
     11 'Lognormal'; ...
     12 'Loglogistic'; ...
     13 'Weibull'; ...
@@ -424,7 +426,11 @@ end
 switch dist
     
     % unbounded
-    case {0,1,2,11} % Normal: mu, sigma>=0; Logistic: mu, sigma>=0; % Extreme Value: mu, sigma>=0; Lognormal: mu, sigma>0
+%     case {0,1,2,11} % Normal: mu, sigma>=0; Logistic: mu, sigma>=0; % Extreme Value: mu, sigma>=0; Lognormal: mu, sigma>0
+%         A = -[zeros(size(INPUT.bounds,1),1), ones(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),INPUT.Spike), ...
+%             zeros(size(INPUT.bounds,1),numX), INPUT.X, zeros(size(INPUT.bounds,1),numX*INPUT.Spike)];
+%         C = zeros(size(INPUT.bounds,1),1);
+    case {0,1,2,11,23} % Normal: mu, sigma>=0; Logistic: mu, sigma>=0; % Extreme Value: mu, sigma>=0; Lognormal: mu, sigma>0
         A = -[zeros(size(INPUT.bounds,1),1), ones(size(INPUT.bounds,1),1), zeros(size(INPUT.bounds,1),INPUT.Spike), ...
             zeros(size(INPUT.bounds,1),numX), INPUT.X, zeros(size(INPUT.bounds,1),numX*INPUT.Spike)];
         C = zeros(size(INPUT.bounds,1),1);
@@ -531,8 +537,6 @@ end
 % -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT, dist,INPUT.Spike,b0))
 
 %% generate output
-
-
 
 
 Results.beta = Results.beta(:);
@@ -724,6 +728,11 @@ switch dist
         % % % b0 =
         % % elseif dist==24 % sinh-arcsinh
         % % % b0 =
+    case 23 % truncated normal
+        R_out(2,2) = {'mu'};
+        R_out(2,6) = {'sigma'};
+        R_out(3,1:5) = head;
+        R_out(3,6:9) = head(2:5);        
         
     case 31 % Poisson % lambda
         R_out(2,2) = {'lambda'};
@@ -755,9 +764,7 @@ if numX > 0
     end
 end
 
-
-
-R_out(numX+6,1) = {'Model characteristics:'};
+R_out(numX+6,1) = {'Model diagnostics:'};
 R_out(numX+7:numX+11,1) = {'LL';'AIC/n';'BIC/n';'n';'k'};
 R_out(numX+7:numX+11,2) = num2cell([Results.fval; (2*numB-2*Results.fval)/size(INPUT.bounds,1); (log(size(INPUT.bounds,1))*numB-2*Results.fval)/size(INPUT.bounds,1); size(INPUT.bounds,1); numB]);
 
@@ -765,6 +772,7 @@ Results.R_out = R_out;
 Results.AIC = (2*numB-2*Results.fval)/size(INPUT.bounds,1);
 Results.AICc = ((2*numB-2*Results.fval) + 2*numB*(numB+1)/(size(INPUT.bounds,1)-numB-1))/size(INPUT.bounds,1);
 Results.BIC = (log(size(INPUT.bounds,1))*numB-2*Results.fval)/size(INPUT.bounds,1);
+Results.ModelDiagnostics = [Results.fval; (2*numB-2*Results.fval)/size(INPUT.bounds,1); (log(size(INPUT.bounds,1))*numB-2*Results.fval)/size(INPUT.bounds,1); size(INPUT.bounds,1); numB];
 
 
 %% display the results
@@ -879,10 +887,12 @@ fprintf('%-*s% *.*f\n',mCW2(1)+spacing+spacing2,R_out{9+numX,1}, mCW2(2)+precisi
 fprintf('%-*s% *d\n',mCW2(1)+spacing+spacing2,R_out{10+numX,1}, mCW2(2),R_out{10+numX,2})
 fprintf('%-*s% *d\n',mCW2(1)+spacing+spacing2,R_out{11+numX,1}, mCW2(2),R_out{11+numX,2})
 
+Results.stats = NaN(5,7+INPUT.Spike);
+
 if INPUT.SimStats
     
     if err ~= 0
-        cprintf(rgb('DarkOrange'), 'WARNING: AVC is not positive semi-definite - aborting simulation of descriptive statistics \n')
+        cprintf(rgb('DarkOrange'), 'WARNING: AVC is not positive semi-definite - aborting simulation of descriptive statistics \n')        
     else
         
         sim1 = 1e3;
@@ -1017,6 +1027,13 @@ if INPUT.SimStats
                         Bmtx(i,:) = JohnsonRND('SL',bDist(1,i),bDist(2,i),bDist(3,i),bDist(4,i),[1,sim2]);
                     end
                 end
+            case 23 % truncated normal
+                for i = 1:sim1
+%                     pd = makedist('Normal',bDist(1,i),bDist(2,i));
+%                     pd = truncate(pd,0,+Inf)
+%                     Bmtx(i,:) = random('normal',bDist(1,i),bDist(2,i),[1,sim2]);
+                    Bmtx(i,:) = trandn(zeros(1,sim2),Inf(1,sim2)).*bDist(2,i)+bDist(1,i);
+                end                
             case 31 % Poisson % lambda
                 for i = 1:sim1
                     Bmtx(i,:) = random('Poisson',bDist(1,i),[1,sim2]);
@@ -1029,40 +1046,47 @@ if INPUT.SimStats
         
 %         Bmtx(repmat(tSpike',[1,sim2])) = 0;
         Bmtx(~isnan(Bmtx) & repmat(tSpike,[sim2,1])) = 0; % spike must enter like this (to each distribution) - otherwise s.e. will blow up. 
-                
+            
+        if isfield(INPUT,'Censor0') && INPUT.Censor0 == 1
+            Bmtx(Bmtx<0) = 0;
+        end
 %         stats1 = [nanmean(Bmtx(:)) nanstd(Bmtx(:)) nanmedian(Bmtx(:)) quantile((Bmtx(:)),0.025) quantile((Bmtx(:)),0.975)];
-        stats1 = nanmedian([nanmean(Bmtx,2), nanstd(Bmtx,[],2), nanmedian(Bmtx,2), quantile(Bmtx,0.025,2), quantile(Bmtx,0.975,2)],1);
-        stats2 = nanstd([nanmean(Bmtx,2), nanstd(Bmtx,[],2), nanmedian(Bmtx,2), quantile(Bmtx,0.025,2), quantile(Bmtx,0.975,2)],[],1);
-        stats31 = quantile([nanmean(Bmtx,2), nanstd(Bmtx,[],2), nanmedian(Bmtx,2), quantile(Bmtx,0.025,2), quantile(Bmtx,0.975,2)],0.025,1);
-        stats32 = quantile([nanmean(Bmtx,2), nanstd(Bmtx,[],2), nanmedian(Bmtx,2), quantile(Bmtx,0.025,2), quantile(Bmtx,0.975,2)],0.975,1);
+        stats1 = nanmedian([nanmean(Bmtx,2), nanstd(Bmtx,[],2), nanmedian(Bmtx,2), quantile(Bmtx,0.025,2), quantile(Bmtx,0.975,2),nanmean(Bmtx<=0,2)],1);
+        stats2 = nanstd([nanmean(Bmtx,2), nanstd(Bmtx,[],2), nanmedian(Bmtx,2), quantile(Bmtx,0.025,2), quantile(Bmtx,0.975,2),nanmean(Bmtx<=0,2)],[],1);
+        stats31 = quantile([nanmean(Bmtx,2), nanstd(Bmtx,[],2), nanmedian(Bmtx,2), quantile(Bmtx,0.025,2), quantile(Bmtx,0.975,2),nanmean(Bmtx<=0,2)],0.025,1);
+        stats32 = quantile([nanmean(Bmtx,2), nanstd(Bmtx,[],2), nanmedian(Bmtx,2), quantile(Bmtx,0.025,2), quantile(Bmtx,0.975,2),nanmean(Bmtx<=0,2)],0.975,1);
         
         stats = [stats1; stats2; stats31; stats32];
         
-        stats_out(1,2:6) = {'mean','s.d.','median','q0.025','q0.975'};
+        stats_out(1,2:7) = {'mean','s.d.','median','q0.025','q0.975','p(W <= 0)'};
                
         if INPUT.Spike
             stats = [stats, [mean(pSpike); std(pSpike); quantile(pSpike,0.025); quantile(pSpike,0.975)]];
-            stats_out(1,7) = {'p.spike'};
+            stats_out(1,8) = {'p.spike'};
         end
         
+        nanmedian(nanmean(Bmtx==0,2))
+        
         stats_out(2:5,1) = {'value','s.e.','lower 95% c.i.','upper 95% c.i.'};
-        stats_out(2:5,2:6+INPUT.Spike) = num2cell(stats);
+        stats_out(2:5,2:7+INPUT.Spike) = num2cell(stats);
         
         Results.stats = stats;
         Results.stats_out = stats_out;       
+        
+%         save tmp1
         
         fprintf('\n\n%s\n','Fitted distribution descriptive statistics:')
         
         [~,mCW3] = CellColumnWidth(stats_out); % width and max width of each column
         if INPUT.Spike
+            fprintf('%*s%*s%*s%*s%*s%*s%*s%*s\n',mCW3(1)+spacing2,stats_out{1,1}, mCW3(2)+spacing2+precision,stats_out{1,2}, mCW3(3)+spacing2+precision,stats_out{1,3}, mCW3(4)+spacing2+precision,stats_out{1,4}, mCW3(5)+spacing2+precision,stats_out{1,5}, mCW3(6)+spacing2+precision,stats_out{1,6}, mCW3(7)+spacing2+precision,stats_out{1,7}, mCW3(8)+spacing2+precision,stats_out{1,8})
+            for j = 2:size(stats_out,1)
+                fprintf('%-*s% *.*f% *.*f% *.*f% *.*f% *.*f% *.*f% *.*f\n',mCW3(1)+spacing2,stats_out{j,1}, mCW3(2)+spacing2+precision,precision,stats_out{j,2}, mCW3(3)+spacing2+precision,precision,stats_out{j,3}, mCW3(4)+spacing2+precision,precision,stats_out{j,4}, mCW3(5)+spacing2+precision,precision,stats_out{j,5}, mCW3(6)+spacing2+precision,precision,stats_out{j,6}, mCW3(7)+spacing2+precision,precision,stats_out{j,7}, mCW3(8)+spacing2+precision,precision,stats_out{j,8})
+            end
+        else
             fprintf('%*s%*s%*s%*s%*s%*s%*s\n',mCW3(1)+spacing2,stats_out{1,1}, mCW3(2)+spacing2+precision,stats_out{1,2}, mCW3(3)+spacing2+precision,stats_out{1,3}, mCW3(4)+spacing2+precision,stats_out{1,4}, mCW3(5)+spacing2+precision,stats_out{1,5}, mCW3(6)+spacing2+precision,stats_out{1,6}, mCW3(7)+spacing2+precision,stats_out{1,7})
             for j = 2:size(stats_out,1)
                 fprintf('%-*s% *.*f% *.*f% *.*f% *.*f% *.*f% *.*f\n',mCW3(1)+spacing2,stats_out{j,1}, mCW3(2)+spacing2+precision,precision,stats_out{j,2}, mCW3(3)+spacing2+precision,precision,stats_out{j,3}, mCW3(4)+spacing2+precision,precision,stats_out{j,4}, mCW3(5)+spacing2+precision,precision,stats_out{j,5}, mCW3(6)+spacing2+precision,precision,stats_out{j,6}, mCW3(7)+spacing2+precision,precision,stats_out{j,7})
-            end
-        else
-            fprintf('%*s%*s%*s%*s%*s%*s\n',mCW3(1)+spacing2,stats_out{1,1}, mCW3(2)+spacing2+precision,stats_out{1,2}, mCW3(3)+spacing2+precision,stats_out{1,3}, mCW3(4)+spacing2+precision,stats_out{1,4}, mCW3(5)+spacing2+precision,stats_out{1,5}, mCW3(6)+spacing2+precision,stats_out{1,6})
-            for j = 2:size(stats_out,1)
-                fprintf('%-*s% *.*f% *.*f% *.*f% *.*f% *.*f\n',mCW3(1)+spacing2,stats_out{j,1}, mCW3(2)+spacing2+precision,precision,stats_out{j,2}, mCW3(3)+spacing2+precision,precision,stats_out{j,3}, mCW3(4)+spacing2+precision,precision,stats_out{j,4}, mCW3(5)+spacing2+precision,precision,stats_out{j,5}, mCW3(6)+spacing2+precision,precision,stats_out{j,6})
             end
         end
         
