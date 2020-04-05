@@ -80,7 +80,7 @@ elseif any(INPUT.bounds(:,1) > INPUT.bounds(:,2))
 end
 
 if any(dist == [10:21,31:32]) && (~INPUT.Spike && any(INPUT.bounds(:,2) <= 0) || (INPUT.Spike && any(INPUT.bounds(:,2) < 0)))
-    cprintf(rgb('DarkOrange'), 'WARNING: Data contains observations not consistent with the distribution type (negative) \n')
+    cprintf(rgb('DarkOrange'), 'WARNING: Data contains observations not consistent with the distribution type (upper bound = zero or negative) \n')
 end
 
 % if any(dist == [31:32]) && ~isinteger(INPUT.bounds(isfinite(INPUT.bounds))) % also 32?
@@ -343,6 +343,9 @@ if ~isfield(INPUT,'OptimOpt') || isempty(INPUT.OptimOpt)
             INPUT.OptimOpt.Algorithm = 'trust-region-reflective';
         elseif isequal(INPUT.Algorithm,'search')
             options_tmp = optimset('MaxFunEvals',1e5,'MaxIter',1e4,'TolFun',1e-12,'TolX',1e-12,'OutputFcn',@outputf);
+            if isfield(INPUT,'MaxIter')
+                options_tmp.MaxIter = INPUT.MaxIter; 
+            end
         else
             error('Incorrectly specified optimization algorithm'); 
         end
@@ -354,7 +357,11 @@ if ~isfield(INPUT,'OptimOpt') || isempty(INPUT.OptimOpt)
         end
     end    
     INPUT.OptimOpt.MaxFunEvals = 1e12; % Maximum number of function evaluations allowed (1000)
-    INPUT.OptimOpt.MaxIter = 1e3; % Maximum number of iterations allowed (500)
+    if isfield(INPUT,'MaxIter')
+        INPUT.OptimOpt.MaxIter = INPUT.MaxIter; 
+    else
+        INPUT.OptimOpt.MaxIter = 1e3; % Maximum number of iterations allowed (500)
+    end
     INPUT.OptimOpt.GradObj = 'off';
     INPUT.OptimOpt.FinDiffType = 'central'; % ('forward')
     INPUT.OptimOpt.TolFun = 1e-12;
