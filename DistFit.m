@@ -548,6 +548,7 @@ end
 
 Results.beta = Results.beta(:);
 Results.fval = -Results.fval;
+Results.RealMin = INPUT.RealMin;
 
 if INPUT.HessEstFix == 3
     Results.hess = hessian(@(B) -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT,dist,INPUT.Spike,INPUT.RealMin,INPUT.ExpB,B)),Results.beta);
