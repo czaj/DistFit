@@ -366,8 +366,13 @@ if ~isfield(INPUT,'OptimOpt') || isempty(INPUT.OptimOpt)
     INPUT.OptimOpt.FinDiffType = 'central'; % ('forward')
     INPUT.OptimOpt.TolFun = 1e-12;
     INPUT.OptimOpt.TolX = 1e-12;
+
+    INPUT.OptimalityTolerance = 1e-8;
+    INPUT.StepTolerance = 1e-8;
+    INPUT.FunctionTolerance = 1e-8;
+
     INPUT.OptimOpt.OutputFcn = @outputf;
-    % OptimOpt.Display = 'iter-detailed';
+    % OptimOpt.Display = 'iter-detailed';    
 end
 
 
@@ -885,8 +890,6 @@ elseif size(R_out,2) == 21
     end
 end
 
-
-
 fprintf('\n%s\n',R_out{6+numX,1})
 [~,mCW2] = CellColumnWidth(R_out(7+numX:11+numX,1:2)); % width and max width of each column
 fprintf('%-*s% *.*f\n',mCW2(1)+spacing+spacing2,R_out{7+numX,1}, mCW2(2)+precision+1,precision,R_out{7+numX,2})
@@ -896,6 +899,10 @@ fprintf('%-*s% *d\n',mCW2(1)+spacing+spacing2,R_out{10+numX,1}, mCW2(2),R_out{10
 fprintf('%-*s% *d\n',mCW2(1)+spacing+spacing2,R_out{11+numX,1}, mCW2(2),R_out{11+numX,2})
 
 Results.stats = NaN(5,7+INPUT.Spike);
+
+% save sim_tmp
+% return
+
 
 if INPUT.SimStats
     
@@ -1058,46 +1065,66 @@ if INPUT.SimStats
         if isfield(INPUT,'Censor0') && INPUT.Censor0 == 1
             Bmtx(Bmtx<0) = 0;
         end
-%         stats1 = [nanmean(Bmtx(:)) nanstd(Bmtx(:)) nanmedian(Bmtx(:)) quantile((Bmtx(:)),0.025) quantile((Bmtx(:)),0.975)];
-        stats1 = nanmedian([nanmean(Bmtx,2), nanstd(Bmtx,[],2), nanmedian(Bmtx,2), quantile(Bmtx,0.025,2), quantile(Bmtx,0.975,2),nanmean(Bmtx<=0,2)],1);
-        stats2 = nanstd([nanmean(Bmtx,2), nanstd(Bmtx,[],2), nanmedian(Bmtx,2), quantile(Bmtx,0.025,2), quantile(Bmtx,0.975,2),nanmean(Bmtx<=0,2)],[],1);
-        stats31 = quantile([nanmean(Bmtx,2), nanstd(Bmtx,[],2), nanmedian(Bmtx,2), quantile(Bmtx,0.025,2), quantile(Bmtx,0.975,2),nanmean(Bmtx<=0,2)],0.025,1);
-        stats32 = quantile([nanmean(Bmtx,2), nanstd(Bmtx,[],2), nanmedian(Bmtx,2), quantile(Bmtx,0.025,2), quantile(Bmtx,0.975,2),nanmean(Bmtx<=0,2)],0.975,1);
-        
+% %         stats1 = [nanmean(Bmtx(:)) nanstd(Bmtx(:)) nanmedian(Bmtx(:)) quantile((Bmtx(:)),0.025) quantile((Bmtx(:)),0.975)];
+        % stats1 = nanmedian([nanmean(Bmtx,2), nanstd(Bmtx,[],2), nanmedian(Bmtx,2), quantile(Bmtx,0.025,2), quantile(Bmtx,0.975,2),nanmean(Bmtx<=0,2)],1);
+        % stats2 = nanstd([nanmean(Bmtx,2), nanstd(Bmtx,[],2), nanmedian(Bmtx,2), quantile(Bmtx,0.025,2), quantile(Bmtx,0.975,2),nanmean(Bmtx<=0,2)],[],1);
+        % stats31 = quantile([nanmean(Bmtx,2), nanstd(Bmtx,[],2), nanmedian(Bmtx,2), quantile(Bmtx,0.025,2), quantile(Bmtx,0.975,2),nanmean(Bmtx<=0,2)],0.025,1);
+        % stats32 = quantile([nanmean(Bmtx,2), nanstd(Bmtx,[],2), nanmedian(Bmtx,2), quantile(Bmtx,0.025,2), quantile(Bmtx,0.975,2),nanmean(Bmtx<=0,2)],0.975,1);
+
+        stats1 = nanmedian([nanmean(Bmtx,2), nanstd(Bmtx,[],2), nanmedian(Bmtx,2), quantile(Bmtx,0.025,2),quantile(Bmtx,0.1,2), quantile(Bmtx,0.25,2),quantile(Bmtx,0.33,2),quantile(Bmtx,0.66,2),quantile(Bmtx,0.75,2),quantile(Bmtx,0.9,2),quantile(Bmtx,0.975,2),nanmean(Bmtx<=0,2)],1);
+        stats2 = nanstd([nanmean(Bmtx,2), nanstd(Bmtx,[],2), nanmedian(Bmtx,2), quantile(Bmtx,0.025,2), quantile(Bmtx,0.1,2), quantile(Bmtx,0.25,2),quantile(Bmtx,0.33,2),quantile(Bmtx,0.66,2),quantile(Bmtx,0.75,2),quantile(Bmtx,0.9,2),quantile(Bmtx,0.975,2),nanmean(Bmtx<=0,2)],[],1);
+        stats31 = quantile([nanmean(Bmtx,2), nanstd(Bmtx,[],2), nanmedian(Bmtx,2), quantile(Bmtx,0.025,2), quantile(Bmtx,0.1,2), quantile(Bmtx,0.25,2),quantile(Bmtx,0.33,2),quantile(Bmtx,0.66,2),quantile(Bmtx,0.75,2),quantile(Bmtx,0.9,2),quantile(Bmtx,0.975,2),nanmean(Bmtx<=0,2)],0.025,1);
+        stats32 = quantile([nanmean(Bmtx,2), nanstd(Bmtx,[],2), nanmedian(Bmtx,2), quantile(Bmtx,0.025,2), quantile(Bmtx,0.1,2), quantile(Bmtx,0.25,2),quantile(Bmtx,0.33,2),quantile(Bmtx,0.66,2),quantile(Bmtx,0.75,2),quantile(Bmtx,0.9,2),quantile(Bmtx,0.975,2),nanmean(Bmtx<=0,2)],0.975,1);
+
         stats = [stats1; stats2; stats31; stats32];
         
-        stats_out(1,2:7) = {'mean','s.d.','median','q0.025','q0.975','p(W <= 0)'};
+        % stats_out(1,2:7) = {'mean','s.d.','median','q0.025','q0.975','p(W <= 0)'};
+        stats_out(1,2:7+6) = {'mean','s.d.','median','q0.025','q0.1','q0.25','q0.33','q0.66','q0.75','q0.9','q0.975','p(W <= 0)'};
                
         if INPUT.Spike
             stats = [stats, [mean(pSpike); std(pSpike); quantile(pSpike,0.025); quantile(pSpike,0.975)]];
             stats_out(1,8) = {'p.spike'};
         end
         
-        nanmedian(nanmean(Bmtx==0,2))
+        % nanmedian(nanmean(Bmtx==0,2))
         
         stats_out(2:5,1) = {'value','s.e.','lower 95% c.i.','upper 95% c.i.'};
-        stats_out(2:5,2:7+INPUT.Spike) = num2cell(stats);
+        stats_out(2:5,2:7+6+INPUT.Spike) = num2cell(stats);
         
         Results.stats = stats;
         Results.stats_out = stats_out;       
-        
-%         save tmp1
+       
+        % save tmp1
+        % return
         
         fprintf('\n\n%s\n','Fitted distribution descriptive statistics:')
         
+        % [~,mCW3] = CellColumnWidth(stats_out); % width and max width of each column
+        % if INPUT.Spike
+        %     fprintf('%*s%*s%*s%*s%*s%*s%*s%*s\n',mCW3(1)+spacing2,stats_out{1,1}, mCW3(2)+spacing2+precision,stats_out{1,2}, mCW3(3)+spacing2+precision,stats_out{1,3}, mCW3(4)+spacing2+precision,stats_out{1,4}, mCW3(5)+spacing2+precision,stats_out{1,5}, mCW3(6)+spacing2+precision,stats_out{1,6}, mCW3(7)+spacing2+precision,stats_out{1,7}, mCW3(8)+spacing2+precision,stats_out{1,8})
+        %     for j = 2:size(stats_out,1)
+        %         fprintf('%-*s% *.*f% *.*f% *.*f% *.*f% *.*f% *.*f% *.*f\n',mCW3(1)+spacing2,stats_out{j,1}, mCW3(2)+spacing2+precision,precision,stats_out{j,2}, mCW3(3)+spacing2+precision,precision,stats_out{j,3}, mCW3(4)+spacing2+precision,precision,stats_out{j,4}, mCW3(5)+spacing2+precision,precision,stats_out{j,5}, mCW3(6)+spacing2+precision,precision,stats_out{j,6}, mCW3(7)+spacing2+precision,precision,stats_out{j,7}, mCW3(8)+spacing2+precision,precision,stats_out{j,8})
+        %     end
+        % else
+        %     fprintf('%*s%*s%*s%*s%*s%*s%*s\n',mCW3(1)+spacing2,stats_out{1,1}, mCW3(2)+spacing2+precision,stats_out{1,2}, mCW3(3)+spacing2+precision,stats_out{1,3}, mCW3(4)+spacing2+precision,stats_out{1,4}, mCW3(5)+spacing2+precision,stats_out{1,5}, mCW3(6)+spacing2+precision,stats_out{1,6}, mCW3(7)+spacing2+precision,stats_out{1,7})
+        %     for j = 2:size(stats_out,1)
+        %         fprintf('%-*s% *.*f% *.*f% *.*f% *.*f% *.*f% *.*f\n',mCW3(1)+spacing2,stats_out{j,1}, mCW3(2)+spacing2+precision,precision,stats_out{j,2}, mCW3(3)+spacing2+precision,precision,stats_out{j,3}, mCW3(4)+spacing2+precision,precision,stats_out{j,4}, mCW3(5)+spacing2+precision,precision,stats_out{j,5}, mCW3(6)+spacing2+precision,precision,stats_out{j,6}, mCW3(7)+spacing2+precision,precision,stats_out{j,7})
+        %     end
+        % end
+
         [~,mCW3] = CellColumnWidth(stats_out); % width and max width of each column
         if INPUT.Spike
-            fprintf('%*s%*s%*s%*s%*s%*s%*s%*s\n',mCW3(1)+spacing2,stats_out{1,1}, mCW3(2)+spacing2+precision,stats_out{1,2}, mCW3(3)+spacing2+precision,stats_out{1,3}, mCW3(4)+spacing2+precision,stats_out{1,4}, mCW3(5)+spacing2+precision,stats_out{1,5}, mCW3(6)+spacing2+precision,stats_out{1,6}, mCW3(7)+spacing2+precision,stats_out{1,7}, mCW3(8)+spacing2+precision,stats_out{1,8})
+            fprintf('%*s%*s%*s%*s%*s%*s%*s%*s%*s%*s%*s%*s%*s%*s\n',mCW3(1)+spacing2,stats_out{1,1}, mCW3(2)+spacing2+precision,stats_out{1,2}, mCW3(3)+spacing2+precision,stats_out{1,3}, mCW3(4)+spacing2+precision,stats_out{1,4}, mCW3(5)+spacing2+precision,stats_out{1,5}, mCW3(6)+spacing2+precision,stats_out{1,6}, mCW3(7)+spacing2+precision,stats_out{1,7}, mCW3(8)+spacing2+precision,stats_out{1,8}, mCW3(9)+spacing2+precision,stats_out{1,9}, mCW3(10)+spacing2+precision,stats_out{1,10}, mCW3(11)+spacing2+precision,stats_out{1,11}, mCW3(12)+spacing2+precision,stats_out{1,12}, mCW3(13)+spacing2+precision,stats_out{1,13}, mCW3(14)+spacing2+precision,stats_out{1,14})
             for j = 2:size(stats_out,1)
-                fprintf('%-*s% *.*f% *.*f% *.*f% *.*f% *.*f% *.*f% *.*f\n',mCW3(1)+spacing2,stats_out{j,1}, mCW3(2)+spacing2+precision,precision,stats_out{j,2}, mCW3(3)+spacing2+precision,precision,stats_out{j,3}, mCW3(4)+spacing2+precision,precision,stats_out{j,4}, mCW3(5)+spacing2+precision,precision,stats_out{j,5}, mCW3(6)+spacing2+precision,precision,stats_out{j,6}, mCW3(7)+spacing2+precision,precision,stats_out{j,7}, mCW3(8)+spacing2+precision,precision,stats_out{j,8})
+                fprintf('%-*s% *.*f% *.*f% *.*f% *.*f% *.*f% *.*f% *.*f% *.*f% *.*f% *.*f% *.*f% *.*f% *.*f\n',mCW3(1)+spacing2,stats_out{j,1}, mCW3(2)+spacing2+precision,precision,stats_out{j,2}, mCW3(3)+spacing2+precision,precision,stats_out{j,3}, mCW3(4)+spacing2+precision,precision,stats_out{j,4}, mCW3(5)+spacing2+precision,precision,stats_out{j,5}, mCW3(6)+spacing2+precision,precision,stats_out{j,6}, mCW3(7)+spacing2+precision,precision,stats_out{j,7}, mCW3(8)+spacing2+precision,precision,stats_out{j,8}, mCW3(9)+spacing2+precision,precision,stats_out{j,9}, mCW3(10)+spacing2+precision,precision,stats_out{j,10}, mCW3(11)+spacing2+precision,precision,stats_out{j,11}, mCW3(12)+spacing2+precision,precision,stats_out{j,12}, mCW3(13)+spacing2+precision,precision,stats_out{j,13}, mCW3(14)+spacing2+precision,precision,stats_out{j,14})
             end
         else
-            fprintf('%*s%*s%*s%*s%*s%*s%*s\n',mCW3(1)+spacing2,stats_out{1,1}, mCW3(2)+spacing2+precision,stats_out{1,2}, mCW3(3)+spacing2+precision,stats_out{1,3}, mCW3(4)+spacing2+precision,stats_out{1,4}, mCW3(5)+spacing2+precision,stats_out{1,5}, mCW3(6)+spacing2+precision,stats_out{1,6}, mCW3(7)+spacing2+precision,stats_out{1,7})
+            fprintf('%*s%*s%*s%*s%*s%*s%*s%*s%*s%*s%*s%*s%*s\n',mCW3(1)+spacing2,stats_out{1,1}, mCW3(2)+spacing2+precision,stats_out{1,2}, mCW3(3)+spacing2+precision,stats_out{1,3}, mCW3(4)+spacing2+precision,stats_out{1,4}, mCW3(5)+spacing2+precision,stats_out{1,5}, mCW3(6)+spacing2+precision,stats_out{1,6}, mCW3(7)+spacing2+precision,stats_out{1,7}, mCW3(8)+spacing2+precision,stats_out{1,8}, mCW3(9)+spacing2+precision,stats_out{1,9}, mCW3(10)+spacing2+precision,stats_out{1,10}, mCW3(11)+spacing2+precision,stats_out{1,11}, mCW3(12)+spacing2+precision,stats_out{1,12}, mCW3(13)+spacing2+precision,stats_out{1,13})
             for j = 2:size(stats_out,1)
-                fprintf('%-*s% *.*f% *.*f% *.*f% *.*f% *.*f% *.*f\n',mCW3(1)+spacing2,stats_out{j,1}, mCW3(2)+spacing2+precision,precision,stats_out{j,2}, mCW3(3)+spacing2+precision,precision,stats_out{j,3}, mCW3(4)+spacing2+precision,precision,stats_out{j,4}, mCW3(5)+spacing2+precision,precision,stats_out{j,5}, mCW3(6)+spacing2+precision,precision,stats_out{j,6}, mCW3(7)+spacing2+precision,precision,stats_out{j,7})
+                fprintf('%-*s% *.*f% *.*f% *.*f% *.*f% *.*f% *.*f% *.*f% *.*f% *.*f% *.*f% *.*f% *.*f\n',mCW3(1)+spacing2,stats_out{j,1}, mCW3(2)+spacing2+precision,precision,stats_out{j,2}, mCW3(3)+spacing2+precision,precision,stats_out{j,3}, mCW3(4)+spacing2+precision,precision,stats_out{j,4}, mCW3(5)+spacing2+precision,precision,stats_out{j,5}, mCW3(6)+spacing2+precision,precision,stats_out{j,6}, mCW3(7)+spacing2+precision,precision,stats_out{j,7}, mCW3(8)+spacing2+precision,precision,stats_out{j,8}, mCW3(9)+spacing2+precision,precision,stats_out{j,9}, mCW3(10)+spacing2+precision,precision,stats_out{j,10}, mCW3(11)+spacing2+precision,precision,stats_out{j,11}, mCW3(12)+spacing2+precision,precision,stats_out{j,12}, mCW3(13)+spacing2+precision,precision,stats_out{j,13})
             end
         end
-        
+
 %         if isfield(INPUT,'PlotDist') && ~isempty(INPUT.PlotDist) && INPUT.PlotDist == 1
 %             hist(Bmtx(:),750)
 %             minBound = min([INPUT.bounds(isfinite(INPUT.bounds(:,1)),1);0]);
