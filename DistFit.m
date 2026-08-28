@@ -179,7 +179,8 @@ if exist('b0','var') && ~isempty(b0)
 end
 
 if INPUT.Spike
-    if all(INPUT.bounds(:,1) == INPUT.bounds(:,2)) % DistFit used for OE questions data (lower bound = upper bound)
+    % if all(INPUT.bounds(:,1) == INPUT.bounds(:,2)) % DistFit used for OE questions data (lower bound = upper bound)
+    if all(INPUT.bounds(~any(isinf(INPUT.bounds),2),1) == INPUT.bounds(~any(isinf(INPUT.bounds),2),2)) % DistFit used for OE questions data (lower bound = upper bound)        
         bounds_tmp = INPUT.bounds(INPUT.bounds(:,1)~=0,:);
     else        
         bounds_tmp = INPUT.bounds(INPUT.bounds(:,1)~=INPUT.bounds(:,2)~=0,:);
@@ -228,7 +229,7 @@ if ~exist('b0','var') || isempty(b0)
             % stable
             
             % bounded (0,Inf)
-        case 10 % exponential
+        case 10 % exponential            
             pd = fitdist(midpoint(midpoint>0),'Exponential','Options',OptimOptFit);
             b0 = pd.ParameterValues; % mu
         case 11 % lognormal
@@ -356,7 +357,7 @@ if ~isfield(INPUT,'OptimOpt') || isempty(INPUT.OptimOpt)
             INPUT.OptimOpt.Algorithm = 'interior-point'; %'sqp'; 'active-set'; 'trust-region-reflective';
         end
     end    
-    INPUT.OptimOpt.MaxFunEvals = 1e12; % Maximum number of function evaluations allowed (1000)
+    INPUT.OptimOpt.MaxFunEvals = INPUT.MaxIter*10; %1e12; % Maximum number of function evaluations allowed (1000)
     if isfield(INPUT,'MaxIter')
         INPUT.OptimOpt.MaxIter = INPUT.MaxIter; 
     else
@@ -529,7 +530,7 @@ switch dist
 end
 
 
-
+% save tmp0
 
 %% Optimization
 
@@ -547,6 +548,9 @@ else
 end
 
 % -sum(LL_DistFit(INPUT.bounds,INPUT.X,INPUT.WT, dist,INPUT.Spike,b0))
+
+% save tmp1
+% return
 
 %% generate output
 
